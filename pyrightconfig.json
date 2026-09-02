@@ -1,0 +1,9 @@
+{
+  "typeCheckingMode": "strict"
+  /*
+  "typeCheckingMode": "standard",
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "ignore": ["celery"]
+  */
+}
