@@ -3,9 +3,6 @@ name = "vety-guardian-portal-back"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Mikko Niemela", email = "mikko.niemela@codemen.fi" }
-]
 requires-python = ">=3.14"
 dependencies = []
 
