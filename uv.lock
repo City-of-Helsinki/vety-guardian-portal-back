@@ -485,12 +485,16 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "djangorestframework-camel-case" },
     { name = "drf-spectacular" },
-    { name = "pre-commit" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "whitenoise" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "ruff" },
-    { name = "whitenoise" },
 ]
 
 [package.metadata]
@@ -501,12 +505,16 @@ requires-dist = [
     { name = "djangorestframework", specifier = ">=3.18.0" },
     { name = "djangorestframework-camel-case", specifier = ">=1.4.2" },
     { name = "drf-spectacular", specifier = ">=0.30.0" },
-    { name = "pre-commit", specifier = ">=4.6.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.5" },
+    { name = "whitenoise", specifier = ">=6.12.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.6.2" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-django", specifier = ">=4.14.0" },
     { name = "ruff", specifier = ">=0.16.5" },
-    { name = "whitenoise", specifier = ">=6.12.0" },
 ]
 
 [[package]]
