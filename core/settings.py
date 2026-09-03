@@ -94,6 +94,10 @@ DATABASES = {  # pyright: ignore[reportUnknownVariableType]
 }
 
 
+# User model
+AUTH_USER_MODEL = "authentication.CustomUser"
+
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
@@ -140,6 +144,7 @@ MAILERS = {
     },
 }
 
+
 # Django REST framework
 # https://www.django-rest-framework.org/api-guide/settings/
 
@@ -161,6 +166,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
 
 # OpenAPI schema
 # https://drf-spectacular.readthedocs.io/en/latest/
