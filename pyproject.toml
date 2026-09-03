@@ -2,6 +2,9 @@
 line-length = 160
 target-version = "py314"
 
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["RUF012"]
+
 [project]
 name = "vety-guardian-portal-back"
 version = "0.1.0"

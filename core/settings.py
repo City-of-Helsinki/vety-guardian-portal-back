@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "authentication",
 ]
 
 MIDDLEWARE = [
@@ -92,6 +93,10 @@ DATABASES = {  # pyright: ignore[reportUnknownVariableType]
         "PORT": env("DB_PORT"),
     }
 }
+
+
+# Set Auto Field for all apps
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # User model
