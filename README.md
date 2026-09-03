@@ -26,6 +26,29 @@ Copy environment variables example and fill out the `.env` file with the correct
 cp -v .env.example .env
 ```
 
+### Pre-commit hooks
+
+Install and activate the pre-commit hooks to automatically run linting, formatting, and tests on every commit:
+
+```shell
+uv run pre-commit install
+```
+
+The hooks run **ruff**, and **pytest** before each commit. You can also run them manually against all files:
+
+```shell
+uv run pre-commit run --all-files
+```
+
+Or run each step manually
+
+```shell
+uv run ruff check .
+uv run ruff check --fix .
+uv run ruff format --check .
+uv run pytest
+```
+
 ### Database
 
 Create database container
@@ -52,7 +75,13 @@ uv run python manage.py createsuperuser
 uv run python manage.py runserver 8001
 ```
 
+Admin panel
+
 http://localhost:8001/admin/
+
+API documentation
+
+http://localhost:8001/schema/swagger-ui/
 
 ## OpenAPI schema
 
