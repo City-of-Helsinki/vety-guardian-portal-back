@@ -10,9 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
-import environ
 import os
 from pathlib import Path
+
+import environ
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -44,6 +45,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -135,4 +138,40 @@ MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
+}
+
+# Django REST framework
+# https://www.django-rest-framework.org/api-guide/settings/
+
+REST_FRAMEWORK = {
+    # "DEFAULT_AUTHENTICATION_CLASSES": [
+    #    "rest_framework.authentication.SessionAuthentication",
+    # ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_RENDERER_CLASSES": (
+        "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
+        "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
+    ),
+    "DEFAULT_PARSER_CLASSES": (
+        "djangorestframework_camel_case.parser.CamelCaseJSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# OpenAPI schema
+# https://drf-spectacular.readthedocs.io/en/latest/
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Vety Guardian Portal API",
+    "DESCRIPTION": "API documentation",
+    "VERSION": "0.1.0",
+    "CAMELIZE_NAMES": False,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
+        "drf_spectacular.hooks.postprocess_schema_enums",
+    ],
 }
