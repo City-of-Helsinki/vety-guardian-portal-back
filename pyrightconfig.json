@@ -1,9 +1,9 @@
 {
-  "typeCheckingMode": "strict"
+  "typeCheckingMode": "strict",
   /*
   "typeCheckingMode": "standard",
   "typeCheckingMode": "basic",
-  "reportMissingTypeStubs": false,
   "ignore": ["celery"]
   */
+  "reportMissingTypeStubs": false
 }

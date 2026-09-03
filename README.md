@@ -52,6 +52,8 @@ uv run python manage.py createsuperuser
 uv run python manage.py runserver 8001
 ```
 
+http://localhost:8001/admin/
+
 ## OpenAPI schema
 
 The APIs are documented using [drf-spectacular](https://drf-spectacular.readthedocs.io/en/latest). Which generates the OpenAPI schema from the Django Rest Framework views.
