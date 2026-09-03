@@ -1,7 +1,8 @@
 {
   "[python]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-python.black-formatter"
+    "editor.defaultFormatter": "charliermarsh.ruff"
+    //"editor.defaultFormatter": "ms-python.black-formatter"
   },
   "[markdown]": {
     "editor.formatOnSave": true,
