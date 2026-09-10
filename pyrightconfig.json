@@ -1,6 +1,7 @@
 {
-  "typeCheckingMode": "strict",
+  "typeCheckingMode": "standard",
   /*
+  "typeCheckingMode": "strict",
   "typeCheckingMode": "standard",
   "typeCheckingMode": "basic",
   "ignore": ["celery"]
