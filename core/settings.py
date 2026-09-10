@@ -36,6 +36,14 @@ DEBUG = env("DEBUG")  # pyright: ignore[reportUnknownVariableType]
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])  # pyright: ignore
 
+
+# Cross-Origin Resource Sharing (django-cors-headers / corsheaders) settings
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])  # pyright: ignore
+CORS_ALLOW_CREDENTIALS = True
+# Django's own CSRF protection for cross-origin POSTs. Separate from the CORS_ALLOWED_ORIGINS above.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])  # pyright: ignore
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -47,6 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "corsheaders",
     "authentication",
     "guardian",
 ]
@@ -54,6 +63,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # as high as possible, before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
