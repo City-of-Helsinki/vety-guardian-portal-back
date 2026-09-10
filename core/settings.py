@@ -159,7 +159,8 @@ REST_FRAMEWORK = {
     #    "rest_framework.authentication.SessionAuthentication",
     # ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        # "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.AllowAny",  # TODO: For inital testing ONLY. Implement Login and use IsAuthenticated !
     ],
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
