@@ -5,5 +5,13 @@
   "typeCheckingMode": "basic",
   "ignore": ["celery"]
   */
-  "reportMissingTypeStubs": false
+  "reportMissingTypeStubs": false,
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/__editable__.*",
+    "**/.venv",
+    "**/.*",
+    "**/migrations/*.py"
+  ]
 }
