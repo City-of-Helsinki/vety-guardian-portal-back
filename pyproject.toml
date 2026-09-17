@@ -8,6 +8,8 @@ exclude = ["*/migrations/*.py"]
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*.py" = ["RUF012", "I001"]
 "*/serializers.py" = ["RUF012"]
+"*/models.py" = ["RUF012"]
+"*/views.py" = ["RUF012"]
 
 [project]
 name = "vety-guardian-portal-back"
@@ -23,6 +25,7 @@ dependencies = [
     "djangorestframework-camel-case>=1.4.2",
     "drf-spectacular>=0.30.0",
     "psycopg[binary]>=3.3.5",
+    "requests>=2.34.2",
     "whitenoise>=6.12.0",
 ]
 

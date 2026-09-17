@@ -1,0 +1,54 @@
+-<!--
+VTJkysely
+ --> 
+-<VTJHenkiloVastaussanoma xsi:schemaLocation="http://xml.vrk.fi/schema/vtjkysely PERUSLT1.xsd"tietojenPoimintaaika="20151117112133"sanomatunnus="PERUSLT1"versio="1.0">
+-<Asiakasinfo>
+ <InfoS>17.11.2015 11:21</InfoS>
+ <InfoR>17.11.2015 11:21</InfoR>
+ <InfoE>17.11.2015 11:21</InfoE>
+ </Asiakasinfo>
+ <Paluukoodi koodi="0000">Haku onnistui</Paluukoodi>
+-<Hakuperusteet>
+ <Henkilotunnus hakuperustePaluukoodi="1"hakuperusteTekstiS="Löytyi"hakuperusteTekstiR="Hittades"hakuperusteTekstiE="Found">310118-998M</Henkilotunnus>
+ </Hakuperusteet>
+-<Henkilo>
+ <Henkilotunnus voimassaolokoodi="1">310118-998M</Henkilotunnus>
+-<NykyinenSukunimi>
+ <Sukunimi>Haapakoski</Sukunimi>
+ </NykyinenSukunimi>
+-<NykyisetEtunimet>
+ <Etunimet>Alina Kukka-Maaria</Etunimet>
+ </NykyisetEtunimet>
+-<Kotikunta>
+ <Kuntanumero>915</Kuntanumero>
+ <KuntaS>Varkaus</KuntaS>
+ <KuntaR>Varkaus</KuntaR>
+ <KuntasuhdeAlkupvm>19701125</KuntasuhdeAlkupvm>
+ </Kotikunta>
+-<VakinainenKotimainenLahiosoite>
+ <LahiosoiteS>Iso Haukka Linnun Kuja 1 I 35</LahiosoiteS>
+ <LahiosoiteR/>
+ <Postinumero>78850</Postinumero>
+ <PostitoimipaikkaS>VARKAUS</PostitoimipaikkaS>
+ <PostitoimipaikkaR>VARKAUS</PostitoimipaikkaR>
+ <AsuminenAlkupvm>19960429</AsuminenAlkupvm>
+ <AsuminenLoppupvm/>
+ </VakinainenKotimainenLahiosoite>
+-<VakinainenUlkomainenLahiosoite>
+ <UlkomainenLahiosoite/>
+ <UlkomainenPaikkakuntaJaValtioS/>
+ <UlkomainenPaikkakuntaJaValtioR/>
+ <UlkomainenPaikkakuntaJaValtioSelvakielinen/>
+ <Valtiokoodi3/>
+ <AsuminenAlkupvm/>
+ <AsuminenLoppupvm/>
+ </VakinainenUlkomainenLahiosoite>
+-<Aidinkieli>
+ <AidinkieliTietokoodi>1</AidinkieliTietokoodi>
+ </Aidinkieli>
+-<Kuolintiedot>
+ <Kuolinpvm/>
+ </Kuolintiedot>
+ </Henkilo>
+ </VTJHenkiloVastaussanoma>
+

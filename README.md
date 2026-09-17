@@ -83,6 +83,12 @@ API documentation
 
 http://localhost:8001/schema/swagger-ui/
 
+### Run VTJ mock server for development environment
+
+```shell
+uv run python -m vtj.testing.mock_server 8080
+```
+
 ## OpenAPI schema
 
 The APIs are documented using [drf-spectacular](https://drf-spectacular.readthedocs.io/en/latest). Which generates the OpenAPI schema from the Django Rest Framework views.

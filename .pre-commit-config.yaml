@@ -1,4 +1,4 @@
-exclude: '^.*\.(json|ini)$'
+exclude: '^.*\.(json|ini|xml)$'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -6,6 +6,7 @@ repos:
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
+        exclude: '^.*\.xsd$'
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit

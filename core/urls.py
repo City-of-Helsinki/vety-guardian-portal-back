@@ -31,4 +31,5 @@ urlpatterns = [
     ),
     # Guardian app (preschool application endpoints)
     path("", include("guardian.urls")),
+    path("vtj/", include("vtj.urls")),
 ]

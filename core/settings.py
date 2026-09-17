@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "authentication",
     "guardian",
+    "vtj",
 ]
 
 MIDDLEWARE = [
@@ -197,4 +198,59 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.contrib.djangorestframework_camel_case.camelize_serializer_fields",
         "drf_spectacular.hooks.postprocess_schema_enums",
     ],
+}
+
+
+# VTJ connection via the City of Helsinki API Gateway
+# https://helsinkisolutionoffice.atlassian.net/wiki/spaces/platta/pages/7610695829/Suomi.fi-palveluv+yl+integrations
+
+VTJ_HEL_ENDPOINT = env("VTJ_HEL_ENDPOINT")  # test or cluster address depending on environment
+VTJ_HEL_SHARED_SECRET_HEADER = env("VTJ_HEL_SHARED_SECRET_HEADER", default=None)  # e.g. "X-Api-Key"  # type: ignore[reportArgumentType]
+VTJ_HEL_SHARED_SECRET = env("VTJ_HEL_SHARED_SECRET", default=None)  # type: ignore[reportArgumentType]
+VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
+
+
+# Logging configuration
+# https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/#logging
+# https://docs.djangoproject.com/en/5.1/topics/logging/
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} [{name}] {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {asctime} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "console_simple": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "vety-guardian-portal-back": {
+            "handlers": ["console_simple"],
+            "level": env("VETY_LOG_LEVEL", default="INFO"),  # type: ignore[reportArgumentType]
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": env("DJANGO_LOG_LEVEL", default="WARNING"),  # type: ignore[reportArgumentType]
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": env("ROOT_LOG_LEVEL", default="WARNING"),  # type: ignore[reportArgumentType]
+    },
 }
