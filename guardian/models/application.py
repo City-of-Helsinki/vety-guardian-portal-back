@@ -37,7 +37,12 @@ class PreschoolApplication(BaseModel):
     hakenut_ensisijaisesti_yksityiseen = models.BooleanField(default=False, verbose_name="Onko hakenut ensisijaisesti yksityiseen päiväkotiin")
     kieli = models.CharField(max_length=2, choices=Kieli.choices, blank=True, verbose_name="Esiopetuksen kieli")
     taydentava_varhaiskasvatus = models.BooleanField(default=False, verbose_name="Tarvitseeko täydentävää varhaiskasvatusta")
-    taydentava_varhaiskasvatus_aloitus = models.DateField(null=True, blank=True, verbose_name="Täydentävän varhaiskasvatuksen aloituspäivä")
+    taydentava_varhaiskasvatus_aloitus = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Täydentävän varhaiskasvatuksen aloituspäivä",
+        help_text="Date in ISO 8601 format (YYYY-MM-DD).",
+    )
     hoidon_tarve = models.CharField(max_length=64, choices=HoidonTarve.choices, blank=True, verbose_name="Vuorohoidon tarve")
     palvelun_tarve = models.CharField(max_length=32, choices=PalvelunTarve.choices, blank=True, verbose_name="Laajuus yhteensä")
     arkipoissaolot_lkm = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Arkipoissaolojen lukumäärä")
