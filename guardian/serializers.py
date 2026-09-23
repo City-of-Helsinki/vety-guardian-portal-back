@@ -62,7 +62,7 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
                 field.allow_blank = True
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        instance: PreschoolApplication | None = self.instance  # pyright: ignore[reportAssignmentType]
+        instance: PreschoolApplication | None = self.instance
 
         # The text fields in the database are not nullable -> nulls are stored as empty strings.
         for name, value in attrs.items():
