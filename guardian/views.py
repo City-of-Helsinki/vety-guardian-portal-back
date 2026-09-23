@@ -8,19 +8,25 @@ class PreschoolApplicationCreateView(generics.CreateAPIView):
     """
     POST /preschool-application-form/
 
-    Tallenna uusi hakemus.
+    Create a new application in "draft" status.
     """
 
     queryset = PreschoolApplication.objects.all()
     serializer_class = PreschoolApplicationSerializer
 
 
-class PreschoolApplicationRetrieveView(generics.RetrieveAPIView):
+class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
     """
     GET /preschool-application-form/<uuid:uuid>/
+    PUT /preschool-application-form/<uuid:uuid>/
 
-    Hae hakemus sen uuid:lla.
+    Retrieve or update the application using its UUID.
+    Fields can be null or empty in the "draft".
+    When the status is changed to "submitted", then the fields are validated.
+    Submitted applications cannot be modified.
     """
+
+    http_method_names = ["get", "put", "head", "options"]
 
     queryset = PreschoolApplication.objects.all()
     serializer_class = PreschoolApplicationSerializer

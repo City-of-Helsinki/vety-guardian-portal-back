@@ -1,18 +1,18 @@
 from django.urls import path
 
-from .views import PreschoolApplicationCreateView, PreschoolApplicationRetrieveView
+from .views import PreschoolApplicationCreateView, PreschoolApplicationDetailView
 
 urlpatterns = [
-    # POST -> tallenna uusi hakemus
+    # POST -> luo uusi hakemus (draft)
     path(
         "preschool-application-form/",
         PreschoolApplicationCreateView.as_view(),
         name="preschool-application-create",
     ),
-    # GET -> hae hakemus uuid:lla
+    # GET -> hae hakemus uuid:lla, PUT -> päivitä / lähetä hakemus
     path(
         "preschool-application-form/<uuid:uuid>/",
-        PreschoolApplicationRetrieveView.as_view(),
+        PreschoolApplicationDetailView.as_view(),
         name="preschool-application-detail",
     ),
 ]
