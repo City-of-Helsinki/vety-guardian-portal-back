@@ -61,6 +61,14 @@ class PreschoolApplication(BaseModel):
     laakehoidon_tarve = models.BooleanField(null=True, blank=True, default=None, verbose_name="Lääkehoidon tarve")
 
     # --- VTJ: lapsen tiedot (väestötietojärjestelmästä haettu) ---
+    dependant = models.ForeignKey(
+        "vtj.Dependant",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="applications",
+        verbose_name="Lapsi",
+    )
     nimi = models.CharField(max_length=255, blank=True, verbose_name="Lapsen nimi")
     henkilotunnus = models.CharField(max_length=11, blank=True, verbose_name="Henkilötunnus")
     karttaosoite = models.CharField(max_length=255, blank=True, verbose_name="Karttaosoite")

@@ -35,6 +35,7 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "arkipoissaolot_lkm",
             "erityisen_tuen_tarve",
             "laakehoidon_tarve",
+            "dependant",
             "nimi",
             "henkilotunnus",
             "karttaosoite",
@@ -48,7 +49,22 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "h2_sahkoposti",
             "h2_puhelinnumero",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "submitted_at"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "submitted_at",
+            # Set from VTJ by PreschoolApplicationForDependantView only.
+            "dependant",
+            "nimi",
+            "henkilotunnus",
+            "karttaosoite",
+            "syntymavuosi",
+            "h1_nimi",
+            "h1_osoite",
+            "h2_nimi",
+            "h2_osoite",
+        ]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
