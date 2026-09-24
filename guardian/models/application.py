@@ -26,6 +26,11 @@ class PalvelunTarve(models.TextChoices):
     ESIOPETUS_4H_4_6H_VAKA = "esiopetus_4h_4_6h_vaka", "Esiopetus 4h + 4-6h vaka"
 
 
+class ApplicationStatus(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    SUBMITTED = "submitted", "Submitted"
+
+
 class PreschoolApplication(BaseModel):
     """
     Esiopetukseen ilmoittautuminen (preschool application).
@@ -33,10 +38,16 @@ class PreschoolApplication(BaseModel):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    # --- Hakemuksen tila ---
+    status = models.CharField(max_length=16, choices=ApplicationStatus.choices, default=ApplicationStatus.DRAFT, verbose_name="Tila")
+    submitted_at = models.DateTimeField(null=True, blank=True, verbose_name="Lähetetty")
+
     # --- Lomake: esiopetukseen / hoitoon liittyvät tiedot ---
-    hakenut_ensisijaisesti_yksityiseen = models.BooleanField(default=False, verbose_name="Onko hakenut ensisijaisesti yksityiseen päiväkotiin")
+    hakenut_ensisijaisesti_yksityiseen = models.BooleanField(
+        null=True, blank=True, default=None, verbose_name="Onko hakenut ensisijaisesti yksityiseen päiväkotiin"
+    )
     kieli = models.CharField(max_length=2, choices=Kieli.choices, blank=True, verbose_name="Esiopetuksen kieli")
-    taydentava_varhaiskasvatus = models.BooleanField(default=False, verbose_name="Tarvitseeko täydentävää varhaiskasvatusta")
+    taydentava_varhaiskasvatus = models.BooleanField(null=True, blank=True, default=None, verbose_name="Tarvitseeko täydentävää varhaiskasvatusta")
     taydentava_varhaiskasvatus_aloitus = models.DateField(
         null=True,
         blank=True,
@@ -46,10 +57,18 @@ class PreschoolApplication(BaseModel):
     hoidon_tarve = models.CharField(max_length=64, choices=HoidonTarve.choices, blank=True, verbose_name="Vuorohoidon tarve")
     palvelun_tarve = models.CharField(max_length=32, choices=PalvelunTarve.choices, blank=True, verbose_name="Laajuus yhteensä")
     arkipoissaolot_lkm = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Arkipoissaolojen lukumäärä")
-    erityisen_tuen_tarve = models.BooleanField(default=False, verbose_name="Erityisen tuen tarve")
-    laakehoidon_tarve = models.BooleanField(default=False, verbose_name="Lääkehoidon tarve")
+    erityisen_tuen_tarve = models.BooleanField(null=True, blank=True, default=None, verbose_name="Erityisen tuen tarve")
+    laakehoidon_tarve = models.BooleanField(null=True, blank=True, default=None, verbose_name="Lääkehoidon tarve")
 
     # --- VTJ: lapsen tiedot (väestötietojärjestelmästä haettu) ---
+    dependant = models.ForeignKey(
+        "vtj.Dependant",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="applications",
+        verbose_name="Lapsi",
+    )
     nimi = models.CharField(max_length=255, blank=True, verbose_name="Lapsen nimi")
     henkilotunnus = models.CharField(max_length=11, blank=True, verbose_name="Henkilötunnus")
     karttaosoite = models.CharField(max_length=255, blank=True, verbose_name="Karttaosoite")

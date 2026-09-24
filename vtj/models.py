@@ -20,6 +20,8 @@ from .vtj_types import Huollettava, Huoltaja, Lahiosoite
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
 
+    from guardian.models.application import PreschoolApplication
+
 logger = logging.getLogger("vety-guardian-portal-back")
 
 # Soft format check only - a Finnish "henkilotunnus" is DDMMYY + century
@@ -67,6 +69,18 @@ class PersonRecord(BaseModel):
     class Meta(BaseModel.Meta):
         abstract = True
         ordering = ["last_name", "first_names"]
+
+    @property
+    def full_name(self) -> str:
+        return " ".join(part for part in (self.first_names, self.last_name) if part)
+
+    def format_address(self) -> str:
+        """
+        Returns the address as "<street_address>, <postal_code> <postal_district>", skipping empty parts.
+        Empty string when the address is withheld (Turvakielto) or missing.
+        """
+        postal = " ".join(part for part in (self.postal_code, self.postal_district) if part)
+        return ", ".join(part for part in (self.street_address, postal) if part)
 
     def update_from_identity(self, identity: Huollettava | Huoltaja) -> None:
         """
@@ -118,6 +132,10 @@ class Guardian(PersonRecord):
 
 class Dependant(PersonRecord):
     """A person under guardianship (Huollettava) of one or more guardians."""
+
+    if TYPE_CHECKING:
+        # annotate-only dynamically generated attributes
+        applications: BaseManager[PreschoolApplication]
 
     guardians = models.ManyToManyField(
         Guardian,

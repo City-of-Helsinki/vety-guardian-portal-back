@@ -11,6 +11,10 @@ exclude = ["*/migrations/*.py"]
 "*/models.py" = ["RUF012"]
 "*/views.py" = ["RUF012"]
 
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "core.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
 [project]
 name = "vety-guardian-portal-back"
 version = "0.1.0"
@@ -32,6 +36,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "django-stubs>=6.1.0",
+    "djangorestframework-stubs>=3.18.1",
     "pre-commit>=4.6.2",
     "pyright>=1.1.413",
     "pytest>=9.1.1",
