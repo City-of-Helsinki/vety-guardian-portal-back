@@ -89,6 +89,25 @@ http://localhost:8001/schema/swagger-ui/
 uv run python -m vtj.testing.mock_server 8080
 ```
 
+### Manage database for testing
+
+Project has custom commands in
+
+`guardian/management/commands/<COMMAND>.py`
+
+Simple exmple command: 'test_command.py'
+
+```
+uv run python manage.py help test_command
+uv run python manage.py test_command
+```
+
+Command to delete "PreschoolApplication" data from development database: 'db_delete_all_PreschoolApplication.py'
+
+```
+uv run python manage.py db_delete_all_PreschoolApplication
+```
+
 ## OpenAPI schema
 
 The APIs are documented using [drf-spectacular](https://drf-spectacular.readthedocs.io/en/latest). Which generates the OpenAPI schema from the Django Rest Framework views.
