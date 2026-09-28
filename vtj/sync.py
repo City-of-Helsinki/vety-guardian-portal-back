@@ -73,6 +73,14 @@ def sync_family(guardian_ssn: str, end_user: str) -> bool:
 
     with transaction.atomic():
         guardians_by_ssn = {ssn: Guardian.update_or_create_from_identity(ssn, identity) for ssn, identity in guardian_identity_by_ssn.items()}
+
+        # The queried guardian is persisted even without dependants (no Huoltaja rows mention them then).
+        queried_guardian = guardians_by_ssn.get(guardian_ssn) or Guardian.update_or_create_from_identity(guardian_ssn)
+        if guardian_ssn not in guardian_identity_by_ssn:
+            queried_guardian.last_name = guardian_self.last_name
+            queried_guardian.first_names = guardian_self.first_names
+        guardians_by_ssn[guardian_ssn] = queried_guardian
+
         dependants_by_ssn = {dependant.ssn: Dependant.update_or_create_from_identity(dependant.ssn, dependant) for dependant in dependants if dependant.ssn}
 
         # Link dependant's own guardians for each dependant

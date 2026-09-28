@@ -185,6 +185,11 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+# djangorestframework_camel_case: parse "h1Sahkoposti" -> "h1_sahkoposti" (default would be "h_1_sahkoposti").
+JSON_CAMEL_CASE = {
+    "JSON_UNDERSCOREIZE": {"no_underscore_before_number": True},
+}
+
 
 # OpenAPI schema
 # https://drf-spectacular.readthedocs.io/en/latest/
