@@ -1,114 +1,54 @@
-FROM nginx:alpine
+FROM helsinki.azurecr.io/ubi10/python-314-minimal
 
-# Remove the default configuration and entrypoint scripts
-RUN rm -f /etc/nginx/conf.d/default.conf && \
-    rm -rf /docker-entrypoint.d
+# Branch or tag used to pull python-uwsgi-common.
+ARG UWSGI_COMMON_REF=main
 
-# Create writable directories for OpenShift's arbitrary non-root UID
-RUN mkdir -p \
-        /tmp/nginx/client_temp \
-        /tmp/nginx/proxy_temp \
-        /tmp/nginx/fastcgi_temp \
-        /tmp/nginx/uwsgi_temp \
-        /tmp/nginx/scgi_temp && \
-    chmod -R 777 /tmp/nginx
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Create OpenShift-compatible Nginx configuration
-RUN cat > /etc/nginx/nginx.conf <<'EOF'
-pid /tmp/nginx/nginx.pid;
+# uv configuration
+ENV UV_PROJECT_ENVIRONMENT=/opt/app-root \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_CACHE=1 \
+    UV_PYTHON_DOWNLOADS=never
+ENV PATH="${UV_PROJECT_ENVIRONMENT}/bin:${PATH}"
 
-worker_processes auto;
+COPY --from=ghcr.io/astral-sh/uv:0.12.22@sha256:f513a91fc62fe7c17567eee97230dd198e43edb8a9fbecca843714a4358fe1bc /uv /uvx /usr/local/bin/
 
-events {
-    worker_connections 1024;
-}
+WORKDIR /app
 
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
+USER root
 
-    access_log /dev/stdout;
-    error_log /dev/stderr;
+COPY pyproject.toml uv.lock ./
 
-    sendfile on;
+# gcc, python3.14-devel and pcre2-devel are needed to compile uWSGI and its plugins, tar and gzip to unpack python-uwsgi-common.
+RUN microdnf update -y && \
+    microdnf install -y nmap-ncat gcc python3.14-devel pcre2-devel tar gzip && \
+    microdnf clean all && \
+    uv sync --locked --no-install-project --no-dev --group prod
 
-    # Writable temporary locations
-    client_body_temp_path /tmp/nginx/client_temp;
-    proxy_temp_path       /tmp/nginx/proxy_temp;
-    fastcgi_temp_path     /tmp/nginx/fastcgi_temp;
-    uwsgi_temp_path       /tmp/nginx/uwsgi_temp;
-    scgi_temp_path         /tmp/nginx/scgi_temp;
+# Build and copy specific python-uwsgi-common files.
+ADD https://github.com/City-of-Helsinki/python-uwsgi-common/archive/${UWSGI_COMMON_REF}.tar.gz /usr/src/
+RUN mkdir -p /usr/src/python-uwsgi-common && \
+    tar --strip-components=1 -xzf /usr/src/${UWSGI_COMMON_REF}.tar.gz -C /usr/src/python-uwsgi-common && \
+    cp /usr/src/python-uwsgi-common/uwsgi-base.ini /app/ && \
+    uwsgi --build-plugin /usr/src/python-uwsgi-common && \
+    rm -rf /usr/src/${UWSGI_COMMON_REF}.tar.gz && \
+    rm -rf /usr/src/python-uwsgi-common
 
-    server {
-        listen 8080;
-        server_name _;
+COPY . .
 
-        root /usr/share/nginx/html;
-        index index.html;
+# Settings require these variables, but they are only used for collectstatic at build time.
+RUN SECRET_KEY="only-used-for-collectstatic" \
+    DB_NAME=x DB_USER=x DB_PASSWORD=x DB_HOST=x DB_PORT=5432 \
+    VTJ_HEL_ENDPOINT=http://localhost \
+    STATIC_ROOT=/var/static \
+    python manage.py collectstatic --noinput
 
-        # Kubernetes/OpenShift readiness probe
-        location = /readiness {
-            access_log off;
-            default_type text/plain;
-            return 200 "OK\n";
-        }
+ENV STATIC_ROOT=/var/static
 
-        # Application
-        location / {
-            try_files $uri $uri/ =404;
-        }
-    }
-}
-EOF
+USER 1001
+EXPOSE 8000/tcp
 
-# Create the test page
-RUN cat > /usr/share/nginx/html/index.html <<'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Docker Test Page</title>
-    <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-            background: #f4f4f5;
-            color: #18181b;
-        }
-
-        .card {
-            padding: 40px;
-            text-align: center;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            margin-top: 0;
-        }
-
-        .status {
-            color: #16a34a;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>Docker Test Page</h1>
-        <p class="status">✓ Container is running</p>
-        <p>Hello from Nginx!</p>
-    </div>
-</body>
-</html>
-EOF
-
-EXPOSE 9000
-
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

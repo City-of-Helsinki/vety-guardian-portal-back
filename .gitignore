@@ -11,3 +11,6 @@ wheels/
 
 # Secrets
 .env
+
+# Collected static files
+/static/
