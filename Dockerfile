@@ -1,4 +1,4 @@
-FROM helsinki.azurecr.io/ubi10/python-314-minimal
+FROM registry.access.redhat.com/ubi10/python-314-minimal
 
 # Branch or tag used to pull python-uwsgi-common.
 ARG UWSGI_COMMON_REF=main
@@ -39,14 +39,12 @@ RUN mkdir -p /usr/src/python-uwsgi-common && \
 
 COPY . .
 
-# Settings require these variables, but they are only used for collectstatic at build time.
-RUN SECRET_KEY="only-used-for-collectstatic" \
-    DB_NAME=x DB_USER=x DB_PASSWORD=x DB_HOST=x DB_PORT=5432 \
-    VTJ_HEL_ENDPOINT=http://localhost \
-    STATIC_ROOT=/var/static \
-    python manage.py collectstatic --noinput
-
+# Static files are collected at container start (docker-entrypoint.sh), so the directory must be writable.
+# Group 0 permissions allow OpenShift's arbitrary user IDs to write to it.
 ENV STATIC_ROOT=/var/static
+RUN mkdir -p ${STATIC_ROOT} && \
+    chown 1001:0 ${STATIC_ROOT} && \
+    chmod g+rwX ${STATIC_ROOT}
 
 USER 1001
 EXPOSE 8000/tcp
