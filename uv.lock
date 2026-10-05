@@ -684,6 +684,12 @@ wheels = [
 ]
 
 [[package]]
+name = "uwsgi"
+version = "2.0.31"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/49/2f57640e889ba509fd1fae10cccec1b58972a07c2724486efba94c5ea448/uwsgi-2.0.31.tar.gz", hash = "sha256:e8f8b350ccc106ff93a65247b9136f529c14bf96b936ac5b264c6ff9d0c76257", size = 822796, upload-time = "2025-10-11T19:17:28.794Z" }
+
+[[package]]
 name = "vety-guardian-portal-back"
 version = "0.1.0"
 source = { virtual = "." }
@@ -709,6 +715,9 @@ dev = [
     { name = "pytest-django" },
     { name = "ruff" },
 ]
+prod = [
+    { name = "uwsgi" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -733,6 +742,7 @@ dev = [
     { name = "pytest-django", specifier = ">=4.14.0" },
     { name = "ruff", specifier = ">=0.16.5" },
 ]
+prod = [{ name = "uwsgi", specifier = ">=2.0.31" }]
 
 [[package]]
 name = "virtualenv"

@@ -43,3 +43,6 @@ dev = [
     "pytest-django>=4.14.0",
     "ruff>=0.16.5",
 ]
+prod = [
+    "uwsgi>=2.0.31",
+]
