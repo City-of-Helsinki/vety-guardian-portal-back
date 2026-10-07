@@ -47,13 +47,16 @@ extends:
       DEBUG: "0"
       APPLY_MIGRATIONS: "1"
       VTJ_HEL_TIMEOUT: "10"
+      # In-app VTJ mock, see vtj/testing/views.py
+      VTJ_MOCK_ENABLED: "1"
+      VTJ_HEL_ENDPOINT: "http://localhost:8000/vtj-mock/api/HenkilonTunnuskysely"
       VETY_LOG_LEVEL: "DEBUG"
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
       # Environment specific, fill in actual values:
-      ALLOWED_HOSTS: "https://vety-esiope-back.dev-se.hel.ninja"
+      # Host names without scheme; localhost is needed for the in-app VTJ mock
+      ALLOWED_HOSTS: "vety-esiope-back.dev-se.hel.ninja,localhost"
       CORS_ALLOWED_ORIGINS: "https://vety-esiope-front.dev-se.hel.ninja"
       CSRF_TRUSTED_ORIGINS: "https://vety-esiope-front.dev-se.hel.ninja"
-      # VTJ_HEL_ENDPOINT: ""
       # VTJ_HEL_SHARED_SECRET_HEADER: ""
       # Secrets (SECRET_KEY, DB_PASSWORD, VTJ_HEL_SHARED_SECRET) must not be defined here

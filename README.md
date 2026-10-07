@@ -89,6 +89,15 @@ http://localhost:8001/schema/swagger-ui/
 uv run python -m vtj.testing.mock_server 8080
 ```
 
+Alternatively, serve the mock from the Django app itself (used in dev and review environments, so no separate container is needed):
+
+```shell
+VTJ_MOCK_ENABLED=on
+VTJ_HEL_ENDPOINT=http://localhost:8001/vtj-mock/api/HenkilonTunnuskysely
+```
+
+Never enable `VTJ_MOCK_ENABLED` in production.
+
 ### Manage database for testing
 
 Project has custom commands in
