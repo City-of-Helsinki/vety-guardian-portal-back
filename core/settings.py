@@ -207,6 +207,8 @@ VTJ_HEL_ENDPOINT = env("VTJ_HEL_ENDPOINT")  # test or cluster address depending 
 VTJ_HEL_SHARED_SECRET_HEADER = env("VTJ_HEL_SHARED_SECRET_HEADER", default=None)  # e.g. "X-Api-Key"  # type: ignore[reportArgumentType]
 VTJ_HEL_SHARED_SECRET = env("VTJ_HEL_SHARED_SECRET", default=None)  # type: ignore[reportArgumentType]
 VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
+# Serve the VTJ mock from this app at /vtj-mock/api/HenkilonTunnuskysely. Never enable in production.
+VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 
 
 # Logging configuration

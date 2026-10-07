@@ -4,7 +4,8 @@ Standalone mock server for the City of Helsinki VTJ Gateway contract
 (HenkilonTunnuskysely), for local development when you don't yet have real
 Gateway/DVV access.
 
-Run it as its own process:
+Run it as its own process, or serve it from the Django app itself by
+setting VTJ_MOCK_ENABLED=on (see vtj/testing/views.py):
 
     uv run python -m vtj.testing.mock_server            # listens on :8000
     uv run python -m vtj.testing.mock_server 8080       # or a custom port
@@ -147,55 +148,60 @@ def _envelope(payload: dict) -> dict:
     return {"VTJHenkiloVastaussanoma": payload}
 
 
+def handle_request(path: str, raw_body: bytes) -> tuple[int, dict]:
+    """
+    Builds the mock response for one HenkilonTunnuskysely POST, returning
+    `(http_status, json_body)`. Shared by the standalone server below and
+    the in-app Django view (vtj/testing/views.py).
+    """
+    if path != PATH:
+        return 404, {"error": f"no such endpoint, expected {PATH}"}
+
+    try:
+        body = json.loads(raw_body or b"{}")
+    except json.JSONDecodeError:
+        return 400, {"error": "invalid JSON body"}
+
+    ssn = body.get("Henkilotunnus")
+    sosonimi = body.get("SoSoNimi")
+    end_user = body.get("Loppukayttaja")
+
+    # Loppukayttaja is mandatory in the real interface - fail loudly
+    # here too, so tests/local runs catch a missing value early
+    # instead of only discovering it against the real Gateway.
+    if not end_user:
+        return 400, {"error": "Loppukayttaja is required"}
+
+    if ssn == NOT_FOUND_SSN or ssn not in PEOPLE:
+        return 200, _envelope({"Paluukoodi": {"koodi": "0001", "value": "Person not found"}})
+
+    person = PEOPLE[ssn]
+    henkilo = {
+        "Henkilotunnus": ssn,
+        **person["name"],
+        "Turvakielto": person["Turvakielto"],
+    }
+    # Address lives on the top-level Henkilo record regardless of which
+    # SoSoNimi was queried (see the comment above PEOPLE) - included
+    # unconditionally here, and simply absent for a person with no
+    # "address" key (i.e. an active Turvakielto).
+    if person.get("address"):
+        henkilo["VakinainenKotimainenLahiosoite"] = person["address"]
+    if sosonimi == "HUOLTAJA-HUOLLETTAVAT":
+        henkilo["Huollettava"] = person.get("Huollettava", [])
+    elif sosonimi == "HUOLLETTAVA-HUOLTAJAT":
+        henkilo["Huoltaja"] = person.get("Huoltaja", [])
+    elif sosonimi != "PERUSSANOMA 1":
+        return 400, {"error": f"unrecognized SoSoNimi: {sosonimi!r}"}
+
+    return 200, _envelope({"Paluukoodi": {"koodi": "0000", "value": "OK"}, "Henkilo": henkilo})
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
-        if self.path != PATH:
-            self._send_json(404, {"error": f"no such endpoint, expected {PATH}"})
-            return
-
         length = int(self.headers.get("Content-Length", 0))
-        try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"error": "invalid JSON body"})
-            return
-
-        ssn = body.get("Henkilotunnus")
-        sosonimi = body.get("SoSoNimi")
-        end_user = body.get("Loppukayttaja")
-
-        # Loppukayttaja is mandatory in the real interface - fail loudly
-        # here too, so tests/local runs catch a missing value early
-        # instead of only discovering it against the real Gateway.
-        if not end_user:
-            self._send_json(400, {"error": "Loppukayttaja is required"})
-            return
-
-        if ssn == NOT_FOUND_SSN or ssn not in PEOPLE:
-            self._send_json(200, _envelope({"Paluukoodi": {"koodi": "0001", "value": "Person not found"}}))
-            return
-
-        person = PEOPLE[ssn]
-        henkilo = {
-            "Henkilotunnus": ssn,
-            **person["name"],
-            "Turvakielto": person["Turvakielto"],
-        }
-        # Address lives on the top-level Henkilo record regardless of which
-        # SoSoNimi was queried (see the comment above PEOPLE) - included
-        # unconditionally here, and simply absent for a person with no
-        # "address" key (i.e. an active Turvakielto).
-        if person.get("address"):
-            henkilo["VakinainenKotimainenLahiosoite"] = person["address"]
-        if sosonimi == "HUOLTAJA-HUOLLETTAVAT":
-            henkilo["Huollettava"] = person["Huollettava"]
-        elif sosonimi == "HUOLLETTAVA-HUOLTAJAT":
-            henkilo["Huoltaja"] = person["Huoltaja"]
-        elif sosonimi != "PERUSSANOMA 1":
-            self._send_json(400, {"error": f"unrecognized SoSoNimi: {sosonimi!r}"})
-            return
-
-        self._send_json(200, _envelope({"Paluukoodi": {"koodi": "0000", "value": "OK"}, "Henkilo": henkilo}))
+        status, data = handle_request(self.path, self.rfile.read(length))
+        self._send_json(status, data)
 
     def _send_json(self, status: int, data: dict) -> None:
         # print("[vtj-mock]", data)
