@@ -12,18 +12,21 @@ class Kieli(models.TextChoices):
 
 class HoidonTarve(models.TextChoices):
     PAIVAAIKAINEN_VARHAISKASVATUS = ("paivaaikainen_varhaiskasvatus", "Esiopetus 4 tuntia jonka lisäksi päiväaikainen varhaiskasvatus")
-    PAIVA_JA_ILTA_AIKAINEN_VARHAISKASVATUS_ARKISIN = (
-        "paiva_ja_ilta_aikainen_varhaiskasvatus_arkisin",
-        "Esiopetus 4 tuntia jonka lisäksi päivä- ja ilta-aikainen varhaiskasvatus arkisin",
+    VUOROHOITO_VARHAISKASVATUS = (
+        "vuorohoito_varhaiskasvatus",
+        "Esiopetus 4 tuntia arkisin, jonka lisäksi vuorohoidon tarve varhaiskasvatuksessa",
     )
-    YMPARIVUOROKAUTINEN_VARHAISKASVATUS = ("ymparivuorokautinen_varhaiskasvatus", "Esiopetus 4 tuntia jonka lisäksi ympärivuorokautinen varhaiskasvatus")
 
 
 class PalvelunTarve(models.TextChoices):
-    ESIOPETUS_4H_1H_VAKA = "esiopetus_4h_1h_vaka", "Esiopetus 4h + 1h vaka"
-    ESIOPETUS_4H_1_3H_VAKA = "esiopetus_4h_1_3h_vaka", "Esiopetus 4h + 1-3h vaka"
-    ESIOPETUS_4H_3_4H_VAKA = "esiopetus_4h_3_4h_vaka", "Esiopetus 4h + 3-4h vaka"
-    ESIOPETUS_4H_4_6H_VAKA = "esiopetus_4h_4_6h_vaka", "Esiopetus 4h + 4-6h vaka"
+    ESIOPETUS_4H_1H_VAKA = "esiopetus_4h_1h_vaka", "Esiop +päiväh, yht 5t/pv"
+    ESIOPETUS_4H_1_3H_VAKA = "esiopetus_4h_1_3h_vaka", "Esiop+ päiväh, yht 5-7/pv"
+    ESIOPETUS_4H_3_4H_VAKA = "esiopetus_4h_3_4h_vaka", "Esiop +päiväh, yht 7-8/pv"
+    ESIOPETUS_4H_4_6H_VAKA = "esiopetus_4h_4_6h_vaka", "Esiop +päiväh, yli 7t/pv"
+
+    ESIOPETUS_4H_61_100H_VUOROH = "esiopetus_4h_61_100h_vuoroh", "Esiopetus + Vuorohoito 61-100h/kk"
+    ESIOPETUS_4H_101_160H_VUOROH = "esiopetus_4h_101_160h_vuoroh", "Esiopetus + Vuorohoito 101-160h/kk"
+    ESIOPETUS_4H_160H_VUOROH = "esiopetus_4h_160h_vuoroh", "Esiopetus + Vuorohoito yli 160h/kk"
 
 
 class ApplicationStatus(models.TextChoices):
