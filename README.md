@@ -83,6 +83,17 @@ API documentation
 
 http://localhost:8001/schema/swagger-ui/
 
+### Login (Helsinki-profiili)
+
+The API authenticates requests with Helsinki Tunnistus API tokens ([django-helusers](https://github.com/City-of-Helsinki/django-helusers) `ApiTokenAuthentication`).
+Set `TOKEN_AUTH_*` and `HELSINKI_PROFILE_API_*` in `.env` (see `.env.example`).
+
+After login the frontend calls `POST /auth/identity/` with the user's Helsinki-profiili API token. The backend reads
+the henkilötunnus from the profile's `verifiedPersonalInformation` (Suomi.fi-verified) and stores it on the user.
+The VTJ and application endpoints use that henkilötunnus as the guardian; they return 403 until it is set.
+
+Note: the VTJ mock only knows the henkilötunnus values in its fixtures, so a fixture is needed for the Suomi.fi test identity you log in with.
+
 ### Run VTJ mock server for development environment
 
 ```shell

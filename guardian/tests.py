@@ -1,8 +1,15 @@
+import uuid
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from authentication.models import CustomUser
+from vtj.models import Dependant, Guardian
+
 from .models.application import ApplicationStatus, PreschoolApplication
+
+GUARDIAN_SSN = "010170-999X"
 
 VALID_SUBMISSION = {
     "status": "submitted",
@@ -13,11 +20,19 @@ VALID_SUBMISSION = {
 }
 
 
+def create_user(ssn: str = "") -> CustomUser:
+    return CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number=ssn)
+
+
 class PreschoolApplicationApiTests(APITestCase):
+    def setUp(self):
+        guardian = Guardian.objects.create(ssn=GUARDIAN_SSN)
+        self.dependant = Dependant.objects.create(ssn="010118-9998")
+        self.dependant.guardians.add(guardian)
+        self.client.force_authenticate(create_user(GUARDIAN_SSN))
+
     def create_draft(self) -> str:
-        response = self.client.post(reverse("preschool-application-create"), {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        return response.data["id"]
+        return str(PreschoolApplication.objects.create(dependant=self.dependant).pk)
 
     def detail_url(self, application_id: str) -> str:
         return reverse("preschool-application-detail", kwargs={"uuid": application_id})
@@ -88,3 +103,30 @@ class PreschoolApplicationApiTests(APITestCase):
         application_id = self.create_draft()
         response = self.client.patch(self.detail_url(application_id), {"kieli": "sv"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_unauthenticated_is_rejected(self):
+        application_id = self.create_draft()
+        self.client.force_authenticate(None)
+        response = self.client.get(self.detail_url(application_id))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_without_verified_identity_is_rejected(self):
+        application_id = self.create_draft()
+        self.client.force_authenticate(create_user())
+        response = self.client.get(self.detail_url(application_id))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_other_guardians_application_is_not_found(self):
+        application_id = self.create_draft()
+        self.client.force_authenticate(create_user("010101-0101"))
+        response = self.client.get(self.detail_url(application_id))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_for_dependant_uses_logged_in_guardian(self):
+        url = reverse("preschool-application-for-dependant", kwargs={"dependant_id": self.dependant.pk})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.json())
+
+        self.client.force_authenticate(create_user("010101-0101"))
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

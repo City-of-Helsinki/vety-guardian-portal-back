@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "corsheaders",
+    "helusers.apps.HelusersConfig",
     "authentication",
     "guardian",
     "vtj",
@@ -160,12 +161,11 @@ MAILERS = {
 # https://www.django-rest-framework.org/api-guide/settings/
 
 REST_FRAMEWORK = {
-    # "DEFAULT_AUTHENTICATION_CLASSES": [
-    #    "rest_framework.authentication.SessionAuthentication",
-    # ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "helusers.oidc.ApiTokenAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": [
-        # "rest_framework.permissions.IsAuthenticated",
-        "rest_framework.permissions.AllowAny",  # TODO: For inital testing ONLY. Implement Login and use IsAuthenticated !
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_RENDERER_CLASSES": (
         "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
@@ -183,6 +183,22 @@ REST_FRAMEWORK = {
 JSON_CAMEL_CASE = {
     "JSON_UNDERSCOREIZE": {"no_underscore_before_number": True},
 }
+
+
+# Helsinki-profiili login (Helsinki Tunnistus / Keycloak)
+# https://github.com/City-of-Helsinki/django-helusers
+# The frontend logs in with the HDS login module and sends an API token whose audience is this backend's client.
+
+OIDC_API_TOKEN_AUTH = {
+    "ISSUER": env.list("TOKEN_AUTH_ISSUER", default=[]),  # pyright: ignore
+    "AUDIENCE": env.list("TOKEN_AUTH_AUDIENCE", default=[]),  # pyright: ignore
+}
+
+# Helsinki-profiili GraphQL API, queried for the guardian's henkilötunnus (verifiedPersonalInformation).
+HELSINKI_PROFILE_API_URL = env.str("HELSINKI_PROFILE_API_URL", default="")  # pyright: ignore
+# Audience of the profile API token the frontend sends to /auth/identity/.
+HELSINKI_PROFILE_API_AUDIENCE = env.str("HELSINKI_PROFILE_API_AUDIENCE", default="")  # pyright: ignore
+HELSINKI_PROFILE_API_TIMEOUT = env.int("HELSINKI_PROFILE_API_TIMEOUT", default=10)
 
 
 # OpenAPI schema
