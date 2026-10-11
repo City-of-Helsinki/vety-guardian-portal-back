@@ -143,7 +143,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = env("STATIC_ROOT", default=BASE_DIR / "static")  # pyright: ignore[reportUnknownVariableType]
+STATIC_ROOT = env.str("STATIC_ROOT", default=str(BASE_DIR / "static"))
 
 
 # Email
