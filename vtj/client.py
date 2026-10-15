@@ -38,8 +38,8 @@ def _call(ssn: str, sosonimi: str, end_user: str) -> dict:
 
     :param ssn: the Finnish personal identity code (Henkilotunnus) of the person to query
     :param sosonimi: SOSONIMI_BASIC / SOSONIMI_GET_DEPENDANTS / SOSONIMI_GET_GUARDIANS
-    :param end_user: the identifier of the natural person (e.g. a
-        Helsinki-profile ID) on whose behalf the query is made -
+    :param end_user: the identifier of the natural person (the
+        Helsinki-profiili ID, see vtj/views.py) on whose behalf the query is made -
         MANDATORY for traceability/audit logging. Never leave it empty
         and never use the system's own technical identifier.
     """

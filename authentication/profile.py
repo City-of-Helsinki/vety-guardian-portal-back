@@ -9,6 +9,8 @@ only their own profile.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import logging
 from dataclasses import dataclass
 
@@ -22,6 +24,7 @@ logger = logging.getLogger("vety-guardian-portal-back")
 MY_PROFILE_QUERY = """
 query {
   myProfile {
+    id
     verifiedPersonalInformation {
       firstName
       lastName
@@ -38,9 +41,21 @@ class ProfileError(Exception):
 
 @dataclass(frozen=True)
 class VerifiedPersonalInformation:
+    profile_id: str
     first_name: str
     last_name: str
     national_identification_number: str
+
+
+def _profile_uuid(global_id: str) -> str:
+    """`myProfile.id` is a Relay global ID: base64 of "ProfileNode:<profile uuid>". Returns the uuid."""
+    try:
+        type_name, _, raw_id = base64.b64decode(global_id, validate=True).decode().partition(":")
+    except (binascii.Error, UnicodeDecodeError) as exc:
+        raise ProfileError(f"Unexpected Helsinki-profiili id: {global_id!r}") from exc
+    if type_name != "ProfileNode" or not raw_id:
+        raise ProfileError(f"Unexpected Helsinki-profiili id: {global_id!r}")
+    return raw_id
 
 
 def validate_profile_token(token: str, user_uuid: str) -> None:
@@ -84,7 +99,10 @@ def get_verified_personal_information(token: str) -> VerifiedPersonalInformation
     info = profile.get("verifiedPersonalInformation")
     if not info or not info.get("nationalIdentificationNumber"):
         return None
+    if not profile.get("id"):
+        raise ProfileError("Helsinki-profiili returned no profile id")
     return VerifiedPersonalInformation(
+        profile_id=_profile_uuid(profile["id"]),
         first_name=info.get("firstName") or "",
         last_name=info.get("lastName") or "",
         national_identification_number=info["nationalIdentificationNumber"],

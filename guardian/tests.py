@@ -21,7 +21,7 @@ VALID_SUBMISSION = {
 
 
 def create_user(ssn: str = "") -> CustomUser:
-    return CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number=ssn)
+    return CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number=ssn, helsinki_profile_id=uuid.uuid4() if ssn else None)
 
 
 class PreschoolApplicationApiTests(APITestCase):

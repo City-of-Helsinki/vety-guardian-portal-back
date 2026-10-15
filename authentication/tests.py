@@ -1,3 +1,4 @@
+import base64
 import uuid
 from unittest import mock
 
@@ -8,14 +9,17 @@ from rest_framework.test import APITestCase
 from .models import CustomUser
 from .profile import ProfileError
 
+PROFILE_UUID = "6b4ba7a5-7f3e-4a62-9b6d-2a8c1f0e3d11"
+
 PROFILE_RESPONSE = {
     "data": {
         "myProfile": {
+            "id": base64.b64encode(f"ProfileNode:{PROFILE_UUID}".encode()).decode(),
             "verifiedPersonalInformation": {
                 "firstName": "Parent",
                 "lastName": "Example",
                 "nationalIdentificationNumber": "010170-999X",
-            }
+            },
         }
     }
 }
@@ -45,6 +49,16 @@ class IdentityViewTests(APITestCase):
         validate.assert_called_once_with("token", str(self.user.uuid))
         self.user.refresh_from_db()
         self.assertEqual(self.user.national_identification_number, "010170-999X")
+        self.assertEqual(self.user.helsinki_profile_id, uuid.UUID(PROFILE_UUID))
+
+    def test_rejects_unexpected_profile_id(self, post, validate):
+        body = {"data": {"myProfile": {**PROFILE_RESPONSE["data"]["myProfile"], "id": "not-a-global-id"}}}
+        post.return_value = profile_response(body)
+        response = self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.helsinki_profile_id)
 
     def test_requires_strong_authentication(self, post, validate):
         post.return_value = profile_response({"data": {"myProfile": {"verifiedPersonalInformation": None}}})

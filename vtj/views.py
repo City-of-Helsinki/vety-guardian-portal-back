@@ -38,8 +38,16 @@ def _guardian_ssn(request: Request) -> str:
 
 
 def _end_user(request: Request) -> str:
-    """VTJ 'Loppukayttaja': the natural person the query is made on behalf of, for VTJ's audit trail."""
-    return str(request.user.uuid)  # pyright: ignore[reportAttributeAccessIssue]
+    """
+    VTJ 'Loppukayttaja': the natural person the query is made on behalf of, for VTJ's audit trail.
+
+    The user's Helsinki-profiili id, as specified for the City's Palveluväylä integrations:
+    "Loppukayttaja: identifier for the end user, if available (e.g. ID from Helsinki profile)"
+    https://helsinkisolutionoffice.atlassian.net/wiki/spaces/platta/pages/7610695829/Suomi.fi-palveluv+yl+integrations
+
+    Stored by POST /auth/identity/ (myProfile.id); HasVerifiedIdentity guarantees it is set.
+    """
+    return str(request.user.helsinki_profile_id)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 # VTJ Paluukoodi for "person not found".

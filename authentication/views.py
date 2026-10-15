@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -53,8 +54,10 @@ class IdentityView(APIView):
         if info is None:
             return Response({"error": "Strong authentication (Suomi.fi) required"}, status=status.HTTP_403_FORBIDDEN)
 
-        if user.national_identification_number != info.national_identification_number:
+        profile_id = uuid.UUID(info.profile_id)
+        if user.national_identification_number != info.national_identification_number or user.helsinki_profile_id != profile_id:
             user.national_identification_number = info.national_identification_number
-            user.save(update_fields=["national_identification_number"])
+            user.helsinki_profile_id = profile_id
+            user.save(update_fields=["national_identification_number", "helsinki_profile_id"])
 
         return Response({"first_name": info.first_name, "last_name": info.last_name})

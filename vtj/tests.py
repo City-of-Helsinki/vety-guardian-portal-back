@@ -79,7 +79,7 @@ class MockViewTests(SimpleTestCase):
 
 class IsProtectedFamilyErrorTests(APITestCase):
     def setUp(self):
-        user = CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number="210281-9988")
+        user = CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number="210281-9988", helsinki_profile_id=uuid.uuid4())
         self.client.force_authenticate(user)
 
     def get_with_error(self, exc: Exception):
