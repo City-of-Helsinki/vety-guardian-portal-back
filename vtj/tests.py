@@ -1,8 +1,13 @@
 import json
+import uuid
+from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 from django.urls import path
+from rest_framework.test import APITestCase
 
+from authentication.models import CustomUser
+from vtj.exceptions import VTJConnectionError, VTJResponseError
 from vtj.testing.mock_server import NOT_FOUND_SSN, PATH, handle_request
 from vtj.testing.views import henkilon_tunnuskysely
 
@@ -70,3 +75,28 @@ class MockViewTests(SimpleTestCase):
 
     def test_get_not_allowed(self):
         self.assertEqual(self.client.get(MOCK_URL).status_code, 405)
+
+
+class IsProtectedFamilyErrorTests(APITestCase):
+    def setUp(self):
+        user = CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number="210281-9988")
+        self.client.force_authenticate(user)
+
+    def get_with_error(self, exc: Exception):
+        with patch("vtj.views.sync_family", side_effect=exc):
+            return self.client.get("/vtj/is_protected_family/")
+
+    def test_person_not_found(self):
+        response = self.get_with_error(VTJResponseError("0001", "Person not found"))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data["code"], "vtj_person_not_found")
+
+    def test_other_return_code(self):
+        response = self.get_with_error(VTJResponseError("0002", "Something else"))
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.data["code"], "vtj_error")
+
+    def test_connection_error(self):
+        response = self.get_with_error(VTJConnectionError("timeout"))
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data["code"], "vtj_unavailable")

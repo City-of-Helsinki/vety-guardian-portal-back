@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 
 from authentication.permissions import HasVerifiedIdentity
 
-from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJError
+from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJError, VTJResponseError
 from .models import Dependant, Guardian
 from .serializers import (
     DependantSerializer,
@@ -42,13 +42,20 @@ def _end_user(request: Request) -> str:
     return str(request.user.uuid)  # pyright: ignore[reportAttributeAccessIssue]
 
 
+# VTJ Paluukoodi for "person not found".
+VTJ_PERSON_NOT_FOUND = "0001"
+
+
 def _vtj_error_response(exc: VTJError) -> Response:
+    """`code` is what the frontend translates; `error` is for developers."""
     logger.error(f"VTJ error: {exc!s}")
     if isinstance(exc, VTJAuthenticationError):
-        return Response({"error": "VTJ authentication failed"}, status=502)
+        return Response({"error": "VTJ authentication failed", "code": "vtj_unavailable"}, status=502)
     if isinstance(exc, VTJConnectionError):
-        return Response({"error": "VTJ connection failed, try again later"}, status=503)
-    return Response({"error": str(exc)}, status=502)
+        return Response({"error": "VTJ connection failed, try again later", "code": "vtj_unavailable"}, status=503)
+    if isinstance(exc, VTJResponseError) and exc.return_code == VTJ_PERSON_NOT_FOUND:
+        return Response({"error": "Person not found in VTJ", "code": "vtj_person_not_found"}, status=404)
+    return Response({"error": str(exc), "code": "vtj_error"}, status=502)
 
 
 class IsProtectedFamilyView(APIView):
@@ -63,6 +70,7 @@ class IsProtectedFamilyView(APIView):
         methods=["GET"],
         responses={
             200: IsProtectedFamilyResponseSerializer,
+            404: ErrorResponseSerializer,
             502: ErrorResponseSerializer,
             503: ErrorResponseSerializer,
         },
