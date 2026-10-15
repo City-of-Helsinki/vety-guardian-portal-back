@@ -17,6 +17,7 @@ import environ
 
 env = environ.Env(
     DEBUG=(bool, False),
+    DATABASE_PASSWORD=(str, ""),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -99,6 +100,10 @@ WSGI_APPLICATION = "core.wsgi.application"
 DATABASES = {  # pyright: ignore[reportUnknownVariableType]
     "default": env.db("DATABASE_URL")
 }
+# In cloud environments the password is injected as a separate secret
+# instead of being embedded in DATABASE_URL.
+if env("DATABASE_PASSWORD"):
+    DATABASES["default"]["PASSWORD"] = env("DATABASE_PASSWORD")
 
 
 # Set Auto Field for all apps
