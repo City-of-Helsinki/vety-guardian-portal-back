@@ -49,7 +49,7 @@ extends:
       VTJ_HEL_TIMEOUT: "10"
       # In-app VTJ mock, see vtj/testing/views.py
       VTJ_MOCK_ENABLED: "1"
-      VTJ_HEL_ENDPOINT: "http://localhost:8000/vtj-mock/api/HenkilonTunnuskysely"
+      VTJ_HEL_ENDPOINT: "http://localhost:8080/vtj-mock/api/HenkilonTunnuskysely"
       VETY_LOG_LEVEL: "DEBUG"
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
