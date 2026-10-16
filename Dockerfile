@@ -47,6 +47,6 @@ RUN mkdir -p ${STATIC_ROOT} && \
     chmod g+rwX ${STATIC_ROOT}
 
 USER 1001
-EXPOSE 9000/tcp
+EXPOSE 8080/tcp 
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
