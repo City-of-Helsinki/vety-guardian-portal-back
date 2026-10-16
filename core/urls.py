@@ -24,6 +24,8 @@ from core.views import healthz, readiness
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Root responds 200 so the CD status code check passes
+    path("", healthz, name="root"),
     # OpenShift probes
     path("healthz", healthz, name="healthz"),
     path("readiness", readiness, name="readiness"),
