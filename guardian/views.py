@@ -8,9 +8,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from authentication.permissions import HasVerifiedIdentity
 from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
-from vtj.views import SSN_PARAMETER
 
 from .models.application import PreschoolApplication
 from .serializers import PreschoolApplicationSerializer
@@ -23,6 +23,7 @@ class PreschoolApplicationCreateView(generics.CreateAPIView):
     Create a new application in "draft" status.
     """
 
+    permission_classes = [HasVerifiedIdentity]
     queryset = PreschoolApplication.objects.all()
     serializer_class = PreschoolApplicationSerializer
 
@@ -40,20 +41,27 @@ class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
 
     http_method_names = ["get", "put", "head", "options"]
 
-    queryset = PreschoolApplication.objects.all()
+    permission_classes = [HasVerifiedIdentity]
     serializer_class = PreschoolApplicationSerializer
     lookup_field = "id"
     lookup_url_kwarg = "uuid"
 
+    def get_queryset(self):
+        # Only applications for the logged-in guardian's own dependants; others look nonexistent.
+        ssn = self.request.user.national_identification_number  # pyright: ignore[reportAttributeAccessIssue]
+        return PreschoolApplication.objects.filter(dependant__guardians__ssn=ssn).distinct()
+
 
 class PreschoolApplicationForDependantView(APIView):
     """
-    POST /preschool-application-form/for-dependant/<uuid:dependant_id>/?ssn=<guardian_ssn>
+    POST /preschool-application-form/for-dependant/<uuid:dependant_id>/
 
     Returns the dependant's existing application (200), or creates a new draft (201)
     prefilled with the child's and guardians' VTJ data.
     Refused (403) when the family has an active Turvakielto.
     """
+
+    permission_classes = [HasVerifiedIdentity]
 
     @extend_schema(
         parameters=[
@@ -64,23 +72,17 @@ class PreschoolApplicationForDependantView(APIView):
                 required=True,
                 description="Database id (UUID) of the Dependant the application is for.",
             ),
-            SSN_PARAMETER,
         ],
         request=None,
         responses={
             200: PreschoolApplicationSerializer,
             201: PreschoolApplicationSerializer,
-            400: ErrorResponseSerializer,
             403: ErrorResponseSerializer,
             404: ErrorResponseSerializer,
         },
     )
     def post(self, request: Request, dependant_id: uuid.UUID) -> Response:
-        # TODO: once authentication exists, take the guardian from the logged-in user instead of `ssn`.
-        ssn = request.query_params.get("ssn")
-        if not ssn:
-            return Response({"error": "Missing required query parameter(s): ssn"}, status=status.HTTP_400_BAD_REQUEST)
-
+        ssn = request.user.national_identification_number  # pyright: ignore[reportAttributeAccessIssue]
         try:
             guardian = Guardian.objects.get(ssn=ssn)
         except Guardian.DoesNotExist:
