@@ -83,6 +83,34 @@ API documentation
 
 http://localhost:8001/schema/swagger-ui/
 
+### Login (Helsinki-profiili)
+
+The API authenticates requests with Helsinki Tunnistus API tokens ([django-helusers](https://github.com/City-of-Helsinki/django-helusers) `ApiTokenAuthentication`).
+Set `TOKEN_AUTH_*` and `HELSINKI_PROFILE_API_*` in `.env` (see `.env.example`).
+
+After login the frontend calls `POST /auth/identity/` with the user's Helsinki-profiili API token. The backend reads
+the henkilötunnus from the profile's `verifiedPersonalInformation` (Suomi.fi-verified) and stores it on the user.
+The VTJ and application endpoints use that henkilötunnus as the guardian; they return 403 until it is set.
+
+Note: the VTJ mock only knows the henkilötunnus values in its fixtures, so a fixture is needed for the Suomi.fi test identity you log in with.
+
+### Login test users
+
+In the test environment Suomi.fi login goes through the test identification service (https://testi.apro.tunnistus.fi/).
+Its default identity `210281-9988` is not in the VTJ mock, so `/vtj/` endpoints return "person not found" for it.
+
+These identities from DVV's test data (https://testiaineisto.fi/testiaineistorivit/henkilot) are in the VTJ mock
+fixtures (`vtj/testing/mock_server.py`) as one family:
+
+| Role   | Henkilötunnus | Name                                  | Notes                           |
+| ------ | ------------- | ------------------------------------- | ------------------------------- |
+| Mother | `140904A998H` | Joanna Melina Haapakoski Testihenkilo | Guardian of the child           |
+| Father | `060999-951B` | Elias Kumpulainen Testihenkilo        | Guardian of the child           |
+| Child  | `040220A999K` | Veeti Konrad Kauriaistes Testihenkilo | Born 2020-02-04, no Turvakielto |
+
+Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
+and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)
+
 ### Run VTJ mock server for development environment
 
 ```shell

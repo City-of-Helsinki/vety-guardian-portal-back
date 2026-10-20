@@ -38,6 +38,7 @@ urlpatterns = [
         name="swagger-ui",
     ),
     # Guardian app (preschool application endpoints)
+    path("auth/", include("authentication.urls")),
     path("", include("guardian.urls")),
     path("vtj/", include("vtj.urls")),
 ]

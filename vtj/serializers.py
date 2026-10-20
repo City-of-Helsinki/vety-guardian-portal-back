@@ -52,6 +52,8 @@ class IsProtectedFamilyResponseSerializer(serializers.Serializer):
 
 
 class ErrorResponseSerializer(serializers.Serializer):
-    """Schema-only: the `{"error": "..."}` body every error response uses."""
+    """Schema-only: the `{"error": "...", "code": "..."}` body every error response uses."""
 
     error = serializers.CharField()
+    # Stable machine-readable code the frontend translates (e.g. "vtj_person_not_found"); `error` is for logs/devs.
+    code = serializers.CharField(required=False)

@@ -25,6 +25,9 @@ see /vtj/schemas/)
 https://dvv.fi/vtjkysely-rajapinta-julkiselle-sektorille
 https://liityntakatalogi.suomi.fi/dataset/vtjrajapinta
 
+Find more test users from "Testiaineistopalvelu"
+https://kehittajille.suomi.fi/palvelut/tunnistus/kayttoonotto/testiympariston-tunnistusvalineet
+https://testiaineisto.fi/testiaineistorivit/henkilot
 
 This script is deliberately dependency-free (standard library only), so
 it needs no extra `pip install` beyond Python itself.
@@ -129,6 +132,66 @@ PEOPLE: dict[str, dict] = {
                 "Syntymaaika": "19700101",
                 "NykyinenSukunimi": {"Sukunimi": "Example"},
                 "NykyisetEtunimet": {"Etunimet": "Parent"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    # A family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot):
+    # mother 140904A998H and father 060999-951B are both guardians of 040220A999K.
+    "140904A998H": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Joanna Melina"},
+        },
+        "address": {"LahiosoiteS": "Vaasanpuistotie 15 B 26", "Postinumero": "65100", "PostitoimipaikkaS": "VAASA"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "040220A999K",
+                "Syntymaaika": "20200204",
+                "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "060999-951B": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Kumpulainen Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Elias"},
+        },
+        "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "040220A999K",
+                "Syntymaaika": "20200204",
+                "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "040220A999K": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
+        },
+        # "address": {"LahiosoiteS": "Vallintie 20 E 22", "Postinumero": "66400", "PostitoimipaikkaS": "LAIHIA"},
+        "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "140904A998H",
+                "Syntymaaika": "20040914",
+                "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Joanna Melina"},
+            },
+            {
+                "Henkilotunnus": "060999-951B",
+                "Syntymaaika": "19990906",
+                "NykyinenSukunimi": {"Sukunimi": "Kumpulainen Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Elias"},
             },
         ],
         "Turvakielto": {"TurvakieltoTieto": "0"},
