@@ -1,8 +1,15 @@
 import base64
+import time
 import uuid
+from importlib.metadata import version
 from unittest import mock
 
+import jwt
+from cryptography.hazmat.primitives.asymmetric import rsa
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
+from helusers.jwt import JWT as HelusersJWT
+from jwt.algorithms import RSAAlgorithm
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -86,3 +93,47 @@ class IdentityViewTests(APITestCase):
         response = self.client.post(self.url, {"profileApiToken": "token"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+TOKEN_AUDIENCE = "vety-api-test"
+SIGNING_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+JWKS = {"keys": [{**RSAAlgorithm.to_jwk(SIGNING_KEY.public_key(), as_dict=True), "kid": "test"}]}
+
+
+def signed_token(iat_offset: int) -> str:
+    now = int(time.time())
+    claims = {"iat": now + iat_offset, "exp": now + 300, "aud": TOKEN_AUDIENCE, "sub": "user"}
+    return jwt.encode(claims, SIGNING_KEY, algorithm="RS256", headers={"kid": "test"})
+
+
+@override_settings(OIDC_API_TOKEN_AUTH_LEEWAY=10)
+class TokenClockSkewTests(SimpleTestCase):
+    """
+    Tunnistus's clock may run slightly ahead of ours, so a fresh token's iat can be in our future.
+
+    Note: HelusersJWT (helusers.jwt.JWT) does not use PyJWT directly. AuthenticationConfig.ready() overwrites
+    helusers.jwt.pyjwt with the leeway wrapper from authentication/jwt_leeway.py, so these tests
+    exercise that wrapper. The module-level `jwt` in this file is still plain PyJWT.
+    """
+
+    def test_accepts_token_issued_slightly_in_the_future(self):
+        HelusersJWT(signed_token(iat_offset=1)).validate(JWKS, TOKEN_AUDIENCE)
+
+    def test_rejects_token_issued_beyond_leeway(self):
+        with self.assertRaises(jwt.ImmatureSignatureError):
+            HelusersJWT(signed_token(iat_offset=60)).validate(JWKS, TOKEN_AUDIENCE)
+
+    @override_settings(OIDC_API_TOKEN_AUTH_LEEWAY=0)
+    def test_without_leeway_rejects_token_issued_in_the_future(self):
+        with self.assertRaises(jwt.ImmatureSignatureError):
+            HelusersJWT(signed_token(iat_offset=1)).validate(JWKS, TOKEN_AUDIENCE)
+
+    def test_reminder_to_recheck_leeway_wrapper_on_helusers_upgrade(self):
+        # jwt_leeway.py patches helusers internals. After a helusers upgrade, check whether helusers now has
+        # a leeway setting of its own (then remove jwt_leeway.py) and whether it still uses PyJWT the same way,
+        # then update the version here. PyJWT upgrades are covered by the behaviour tests above.
+        self.assertEqual(
+            version("django-helusers"),
+            "1.3.0",
+            "helusers was upgraded: recheck authentication/jwt_leeway.py (see this test's comment)",
+        )
