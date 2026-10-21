@@ -232,6 +232,12 @@ VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
 VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 
 
+# Test-data cleanup API for e2e tests at /test-data/ (see guardian/testing/views.py). Never enable in production.
+TEST_DATA_API_ENABLED = env.bool("TEST_DATA_API_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
+# Shared secret the tests send in the X-Test-Data-Api-Key header. All requests are refused while it's empty.
+TEST_DATA_API_KEY = env.str("TEST_DATA_API_KEY", default="")  # pyright: ignore
+
+
 # Logging configuration
 # https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/#logging
 # https://docs.djangoproject.com/en/5.1/topics/logging/
