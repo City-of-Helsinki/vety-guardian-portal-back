@@ -145,6 +145,34 @@ Command to delete "PreschoolApplication" data from development database: 'db_del
 uv run python manage.py db_delete_all_PreschoolApplication
 ```
 
+Command to delete the data linked to a child's or guardian's henkilötunnus: 'db_delete_by_hetu.py'. Deletes their
+applications and VTJ person records (`Dependant`, `Guardian`). With a guardian's hetu, all of the guardian's dependants
+and their applications are deleted. `--yes` skips the confirmation prompt.
+
+```
+uv run python manage.py db_delete_by_hetu 010170-999X
+```
+
+### Test-data API for e2e tests
+
+The same deletes are available over HTTP so e2e tests can clean up after each test. The API is routed only when
+`TEST_DATA_API_ENABLED` is on, and every request must send `TEST_DATA_API_KEY` in the `X-Test-Data-Api-Key` header.
+It is not in the OpenAPI schema.
+
+```
+# Data linked to a child's or guardian's henkilötunnus
+curl -X POST http://localhost:8001/test-data/delete/ \
+  -H "X-Test-Data-Api-Key: $TEST_DATA_API_KEY" -H "Content-Type: application/json" \
+  -d '{"hetu": "010170-999X"}'
+
+# All rows from the PreschoolApplication table
+curl -X POST http://localhost:8001/test-data/delete-all/ -H "X-Test-Data-Api-Key: $TEST_DATA_API_KEY"
+```
+
+Both return the number of deleted rows, e.g. `{"applications": 1, "dependants": 2, "guardians": 1}`.
+
+Never enable `TEST_DATA_API_ENABLED` in production.
+
 ## OpenAPI schema
 
 The APIs are documented using [drf-spectacular](https://drf-spectacular.readthedocs.io/en/latest). Which generates the OpenAPI schema from the Django Rest Framework views.

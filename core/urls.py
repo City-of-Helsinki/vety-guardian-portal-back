@@ -47,3 +47,6 @@ if settings.VTJ_MOCK_ENABLED:
     from vtj.testing.views import henkilon_tunnuskysely
 
     urlpatterns.append(path("vtj-mock/api/HenkilonTunnuskysely", henkilon_tunnuskysely, name="vtj-mock"))
+
+if settings.TEST_DATA_API_ENABLED:
+    urlpatterns.append(path("test-data/", include("guardian.testing.urls")))
