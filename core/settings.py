@@ -198,6 +198,9 @@ OIDC_API_TOKEN_AUTH = {
     "ISSUER": env.list("TOKEN_AUTH_ISSUER", default=[]),  # pyright: ignore
     "AUDIENCE": env.list("TOKEN_AUTH_AUDIENCE", default=[]),  # pyright: ignore
 }
+# Seconds of clock skew tolerated between us and Tunnistus when validating token iat/nbf/exp
+# (helusers has no setting for it, see authentication/jwt_leeway.py).
+OIDC_API_TOKEN_AUTH_LEEWAY = env.int("OIDC_API_TOKEN_AUTH_LEEWAY", default=10)
 
 # Helsinki-profiili GraphQL API, queried for the guardian's henkilötunnus (verifiedPersonalInformation).
 HELSINKI_PROFILE_API_URL = env.str("HELSINKI_PROFILE_API_URL", default="")  # pyright: ignore
