@@ -2,11 +2,20 @@ from typing import Any
 
 from django.db import models
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models.application import ApplicationStatus, PreschoolApplication
 
 REQUIRED_MESSAGE = "This field is required."
+
+CURRENT_GUARDIAN_CHOICES = ["h1", "h2"]
+
+# The contact details each guardian enters themselves.
+GUARDIAN_CONTACT_FIELDS = {
+    "h1": ["h1_sahkoposti", "h1_puhelinnumero"],
+    "h2": ["h2_sahkoposti", "h2_puhelinnumero"],
+}
 
 
 class PreschoolApplicationSerializer(serializers.ModelSerializer):
@@ -17,6 +26,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
     Full validation is run only when the status is changed to "submitted".
     Submitted applications cannot be modified.
     """
+
+    current_guardian = serializers.SerializerMethodField()
 
     class Meta:
         model = PreschoolApplication
@@ -42,12 +53,15 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "syntymavuosi",
             "h1_nimi",
             "h1_osoite",
+            "h1_henkilotunnus",
             "h1_sahkoposti",
             "h1_puhelinnumero",
             "h2_nimi",
             "h2_osoite",
+            "h2_henkilotunnus",
             "h2_sahkoposti",
             "h2_puhelinnumero",
+            "current_guardian",
         ]
         read_only_fields = [
             "id",
@@ -62,8 +76,10 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "syntymavuosi",
             "h1_nimi",
             "h1_osoite",
+            "h1_henkilotunnus",
             "h2_nimi",
             "h2_osoite",
+            "h2_henkilotunnus",
         ]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -77,6 +93,19 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             if isinstance(field, serializers.ChoiceField):
                 field.allow_blank = True
 
+    @extend_schema_field(serializers.ChoiceField(choices=CURRENT_GUARDIAN_CHOICES, allow_null=True, read_only=True))
+    def get_current_guardian(self, instance: PreschoolApplication) -> str | None:
+        """Which guardian slot (h1 / h2) the logged-in user is in."""
+        request = self.context.get("request")
+        ssn = getattr(getattr(request, "user", None), "national_identification_number", "")
+        if not ssn:
+            return None
+        if ssn == instance.h1_henkilotunnus:
+            return "h1"
+        if ssn == instance.h2_henkilotunnus:
+            return "h2"
+        return None
+
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         instance: PreschoolApplication | None = self.instance
 
@@ -88,12 +117,19 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
         if instance is not None and instance.status == ApplicationStatus.SUBMITTED:
             raise serializers.ValidationError({"status": "Submitted application cannot be edited."})
 
+        # Guardians can only edit their own contact details -> the other guardian's are ignored.
+        current_guardian = self.get_current_guardian(instance) if instance else None
+        for guardian, fields in GUARDIAN_CONTACT_FIELDS.items():
+            if guardian != current_guardian:
+                for name in fields:
+                    attrs.pop(name, None)
+
         status = attrs.get("status", ApplicationStatus.DRAFT)
         if instance is None and status != ApplicationStatus.DRAFT:
             raise serializers.ValidationError({"status": "New application is created as a draft."})
 
         if status == ApplicationStatus.SUBMITTED:
-            data = {name: getattr(instance, name) for name in self.Meta.fields} if instance else {}
+            data = {name: getattr(instance, name) for name in self.Meta.fields if name != "current_guardian"} if instance else {}
             data.update(attrs)
             self._validate_submission(data)
 
