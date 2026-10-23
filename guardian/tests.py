@@ -32,7 +32,7 @@ class PreschoolApplicationApiTests(APITestCase):
         self.client.force_authenticate(create_user(GUARDIAN_SSN))
 
     def create_draft(self) -> str:
-        return str(PreschoolApplication.objects.create(dependant=self.dependant).pk)
+        return str(PreschoolApplication.objects.create(dependant=self.dependant, h1_henkilotunnus=GUARDIAN_SSN).pk)
 
     def detail_url(self, application_id: str) -> str:
         return reverse("preschool-application-detail", kwargs={"uuid": application_id})
@@ -130,3 +130,42 @@ class PreschoolApplicationApiTests(APITestCase):
         self.client.force_authenticate(create_user("010101-0101"))
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_for_dependant_assigns_guardian_slots(self):
+        other_ssn = "020270-998W"
+        self.dependant.guardians.add(Guardian.objects.create(ssn=other_ssn))
+        url = reverse("preschool-application-for-dependant", kwargs={"dependant_id": self.dependant.pk})
+
+        # The guardian who opens the application first is h1.
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.json())
+        self.assertEqual(response.data["h1_henkilotunnus"], GUARDIAN_SSN)
+        self.assertEqual(response.data["h2_henkilotunnus"], other_ssn)
+        self.assertEqual(response.data["current_guardian"], "h1")
+
+        self.client.force_authenticate(create_user(other_ssn))
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assertEqual(response.data["current_guardian"], "h2")
+        response = self.client.get(self.detail_url(response.data["id"]))
+        self.assertEqual(response.data["current_guardian"], "h2")
+
+    def test_guardian_can_only_edit_own_contact_details(self):
+        other_ssn = "020270-9985"
+        self.dependant.guardians.add(Guardian.objects.create(ssn=other_ssn))
+        application = PreschoolApplication.objects.create(
+            dependant=self.dependant,
+            h1_henkilotunnus=GUARDIAN_SSN,
+            h1_sahkoposti="h1@example.com",
+            h2_henkilotunnus=other_ssn,
+        )
+        self.client.force_authenticate(create_user(other_ssn))
+
+        body = {"status": "draft", "h1Sahkoposti": "changed@example.com", "h1Puhelinnumero": "0401111111", "h2Sahkoposti": "h2@example.com"}
+        response = self.client.put(self.detail_url(str(application.pk)), body, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+
+        application.refresh_from_db()
+        self.assertEqual(application.h1_sahkoposti, "h1@example.com")
+        self.assertEqual(application.h1_puhelinnumero, "")
+        self.assertEqual(application.h2_sahkoposti, "h2@example.com")

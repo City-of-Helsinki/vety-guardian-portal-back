@@ -30,6 +30,12 @@ query {
       lastName
       nationalIdentificationNumber
     }
+    primaryEmail {
+      email
+    }
+    primaryPhone {
+      phone
+    }
   }
 }
 """
@@ -45,6 +51,8 @@ class VerifiedPersonalInformation:
     first_name: str
     last_name: str
     national_identification_number: str
+    email: str
+    phone: str
 
 
 def _profile_uuid(global_id: str) -> str:
@@ -77,7 +85,7 @@ def validate_profile_token(token: str, user_uuid: str) -> None:
 
 def get_verified_personal_information(token: str) -> VerifiedPersonalInformation | None:
     """
-    Returns the user's Suomi.fi-verified information, or None if the profile has none
+    Returns the user's Suomi.fi-verified information & contact details, or None if the profile has none
     (the user hasn't authenticated strongly).
     """
     try:
@@ -106,4 +114,6 @@ def get_verified_personal_information(token: str) -> VerifiedPersonalInformation
         first_name=info.get("firstName") or "",
         last_name=info.get("lastName") or "",
         national_identification_number=info["nationalIdentificationNumber"],
+        email=(profile.get("primaryEmail") or {}).get("email") or "",
+        phone=(profile.get("primaryPhone") or {}).get("phone") or "",
     )
