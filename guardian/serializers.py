@@ -11,7 +11,6 @@ REQUIRED_MESSAGE = "This field is required."
 
 CURRENT_GUARDIAN_CHOICES = ["h1", "h2"]
 
-# The contact details each guardian enters themselves.
 GUARDIAN_CONTACT_FIELDS = {
     "h1": ["h1_sahkoposti", "h1_puhelinnumero"],
     "h2": ["h2_sahkoposti", "h2_puhelinnumero"],
@@ -61,6 +60,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "h2_henkilotunnus",
             "h2_sahkoposti",
             "h2_puhelinnumero",
+            "h1_yhteystiedot_tallennettu",
+            "h2_yhteystiedot_tallennettu",
             "current_guardian",
         ]
         read_only_fields = [
@@ -80,6 +81,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             "h2_nimi",
             "h2_osoite",
             "h2_henkilotunnus",
+            "h1_yhteystiedot_tallennettu",
+            "h2_yhteystiedot_tallennettu",
         ]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -117,10 +120,13 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
         if instance is not None and instance.status == ApplicationStatus.SUBMITTED:
             raise serializers.ValidationError({"status": "Submitted application cannot be edited."})
 
-        # Guardians can only edit their own contact details -> the other guardian's are ignored.
+        # A guardian can enter the other guardian's contact details until that guardian has saved their own.
         current_guardian = self.get_current_guardian(instance) if instance else None
         for guardian, fields in GUARDIAN_CONTACT_FIELDS.items():
-            if guardian != current_guardian:
+            if guardian == current_guardian:
+                if any(attrs.get(name) for name in fields):
+                    attrs[f"{guardian}_yhteystiedot_tallennettu"] = True
+            elif instance is not None and getattr(instance, f"{guardian}_yhteystiedot_tallennettu"):
                 for name in fields:
                     attrs.pop(name, None)
 
