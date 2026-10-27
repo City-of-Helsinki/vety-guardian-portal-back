@@ -8,3 +8,5 @@ class IdentityRequestSerializer(serializers.Serializer):
 class IdentityResponseSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
+    email = serializers.CharField(allow_blank=True)
+    phone = serializers.CharField(allow_blank=True)
