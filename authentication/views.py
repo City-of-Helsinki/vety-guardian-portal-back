@@ -60,4 +60,4 @@ class IdentityView(APIView):
             user.helsinki_profile_id = profile_id
             user.save(update_fields=["national_identification_number", "helsinki_profile_id"])
 
-        return Response({"first_name": info.first_name, "last_name": info.last_name})
+        return Response({"first_name": info.first_name, "last_name": info.last_name, "email": info.email, "phone": info.phone})

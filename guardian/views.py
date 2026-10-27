@@ -170,7 +170,7 @@ class PreschoolApplicationForDependantView(APIView):
             application = PreschoolApplication.objects.filter(dependant=dependant).order_by("-created_at").first()
             if application is not None:
                 # Returns the dependant's existing application (200)
-                return Response(PreschoolApplicationSerializer(application).data, status=status.HTTP_200_OK)
+                return Response(PreschoolApplicationSerializer(application, context={"request": request}).data, status=status.HTTP_200_OK)
 
             # Creates a new draft application (201)
             other_guardian = next((g for g in guardians if g.pk != guardian.pk), None)
@@ -182,8 +182,10 @@ class PreschoolApplicationForDependantView(APIView):
                 karttaosoite=dependant.format_address(),
                 h1_nimi=guardian.full_name,
                 h1_osoite=guardian.format_address(),
+                h1_henkilotunnus=guardian.ssn,
                 h2_nimi=other_guardian.full_name if other_guardian else "",
                 h2_osoite=other_guardian.format_address() if other_guardian else "",
+                h2_henkilotunnus=other_guardian.ssn if other_guardian else "",
             )
 
-        return Response(PreschoolApplicationSerializer(application).data, status=status.HTTP_201_CREATED)
+        return Response(PreschoolApplicationSerializer(application, context={"request": request}).data, status=status.HTTP_201_CREATED)

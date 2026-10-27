@@ -27,6 +27,8 @@ PROFILE_RESPONSE = {
                 "lastName": "Example",
                 "nationalIdentificationNumber": "010170-999X",
             },
+            "primaryEmail": {"email": "parent@example.com"},
+            "primaryPhone": {"phone": "+358401234567"},
         }
     }
 }
@@ -52,7 +54,10 @@ class IdentityViewTests(APITestCase):
         response = self.client.post(self.url, {"profileApiToken": "token"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
-        self.assertEqual(response.json(), {"firstName": "Parent", "lastName": "Example"})
+        self.assertEqual(
+            response.json(),
+            {"firstName": "Parent", "lastName": "Example", "email": "parent@example.com", "phone": "+358401234567"},
+        )
         validate.assert_called_once_with("token", str(self.user.uuid))
         self.user.refresh_from_db()
         self.assertEqual(self.user.national_identification_number, "010170-999X")

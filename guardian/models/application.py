@@ -80,16 +80,22 @@ class PreschoolApplication(BaseModel):
     # --- Huoltaja 1 ---
     h1_nimi = models.CharField(max_length=255, blank=True, verbose_name="Huoltaja 1 nimi")
     h1_osoite = models.CharField(max_length=255, blank=True, verbose_name="Huoltaja 1 osoite")
+    h1_henkilotunnus = models.CharField(max_length=11, blank=True, verbose_name="Huoltaja 1 henkilötunnus")
     # --- Huoltaja 1 - VTJ heattu ---
     h1_sahkoposti = models.EmailField(blank=True, verbose_name="Huoltaja 1 sähköposti")
     h1_puhelinnumero = models.CharField(max_length=20, blank=True, verbose_name="Huoltaja 1 puhelinnumero")
+    # Set when the guardian saves their own contact details -> the other guardian can no longer edit them.
+    h1_yhteystiedot_tallennettu = models.BooleanField(default=False, verbose_name="Huoltaja 1 on tallentanut yhteystietonsa")
 
     # --- Huoltaja 2 (valinnainen) ---
     h2_nimi = models.CharField(max_length=255, blank=True, verbose_name="Huoltaja 2 nimi")
     h2_osoite = models.CharField(max_length=255, blank=True, verbose_name="Huoltaja 2 osoite")
+    h2_henkilotunnus = models.CharField(max_length=11, blank=True, verbose_name="Huoltaja 2 henkilötunnus")
     # --- Huoltaja 2 - VTJ heattu ---
     h2_sahkoposti = models.EmailField(blank=True, verbose_name="Huoltaja 2 sähköposti")
     h2_puhelinnumero = models.CharField(max_length=20, blank=True, verbose_name="Huoltaja 2 puhelinnumero")
+    # Set when the guardian saves their own contact details -> the other guardian can no longer edit them.
+    h2_yhteystiedot_tallennettu = models.BooleanField(default=False, verbose_name="Huoltaja 2 on tallentanut yhteystietonsa")
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         verbose_name = "Esiopetushakemus"
