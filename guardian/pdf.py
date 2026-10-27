@@ -78,7 +78,7 @@ def application_pdf_filename(application: PreschoolApplication) -> str:
     """
     E.g. "esiopetusilmoittautuminen_2026-10-20_Testi_Lapsi.pdf": the submission date in Helsinki time and the child's name,
     cut to FILENAME_MAX_LENGTH characters before ".pdf".
-    Keep in sync with pdfFilename in vety-guardian-portal-front/src/components/application-form/steps/Esikatselu.tsx
+    Keep in sync with pdfFilename in vety-guardian-portal-front/src/components/pdf-download-button/PdfDownloadButton.tsx
     """
     parts = ["esiopetusilmoittautuminen"]
     if application.submitted_at:

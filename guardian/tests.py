@@ -318,9 +318,13 @@ class PreschoolApplicationPdfTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     def test_html_content(self, _):
-        html = render_application_html(self.create_application(), "fi")
+        html = render_application_html(self.create_application(h1_henkilotunnus=GUARDIAN_SSN), "fi")
         for text in ["Esiopetukseen ilmoittautuminen", "Testi Lapsi", "010118-9998", "huoltaja@example.com", "Lapsen nimi", "Suomi"]:
             self.assertIn(text, html)
+        self.assertInHTML(
+            f'<div class="label-value" data-testid="summary-h1-henkilotunnus"><span class="label">esikatselu.henkilotunnus</span><span>{GUARDIAN_SSN}</span></div>',
+            html,
+        )
         self.assertIn('<a href="https://dvv.fi">DVV:ltä</a>', html)
         self.assertIn("data:image/svg+xml;base64,", html)
         # Left out of the PDF: the step title, edit links, the "already submitted" notification and the empty muut huoltajat.
@@ -328,9 +332,13 @@ class PreschoolApplicationPdfTests(APITestCase):
             self.assertNotIn(text, html)
 
     def test_html_muut_huoltajat(self, _):
-        html = render_application_html(self.create_application(h2_nimi="Huoltaja Kaksi"), "fi")
+        html = render_application_html(self.create_application(h2_nimi="Huoltaja Kaksi", h2_henkilotunnus="010101-0101"), "fi")
         self.assertIn("Muut huoltajat", html)
         self.assertIn("Huoltaja Kaksi", html)
+        self.assertInHTML(
+            '<div class="label-value" data-testid="summary-h2-henkilotunnus"><span class="label">esikatselu.henkilotunnus</span><span>010101-0101</span></div>',
+            html,
+        )
 
     def test_html_escapes_values(self, _):
         html = render_application_html(self.create_application(h1_puhelinnumero="<b>040</b>"), "fi")
