@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.db.models import QuerySet
 from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import generics, status
@@ -18,7 +19,7 @@ from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
 
 from .models.application import ApplicationStatus, PreschoolApplication
-from .pdf import render_application_pdf
+from .pdf import application_pdf_filename, render_application_pdf
 from .serializers import PreschoolApplicationSerializer
 from .translations import FALLBACK_LANGUAGE, SUPPORTED_LANGUAGES, TranslationError
 
@@ -111,7 +112,7 @@ class PreschoolApplicationPdfView(generics.GenericAPIView):
             return Response({"error": "Translations unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         response = HttpResponse(pdf, content_type="application/pdf")
-        response["Content-Disposition"] = 'attachment; filename="esiopetusilmoittautuminen.pdf"'
+        response["Content-Disposition"] = content_disposition_header(True, application_pdf_filename(application))
         return response
 
 

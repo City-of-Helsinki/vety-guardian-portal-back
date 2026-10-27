@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from unittest import mock
 
 import requests
@@ -12,7 +13,7 @@ from authentication.models import CustomUser
 from vtj.models import Dependant, Guardian
 
 from .models.application import ApplicationStatus, PreschoolApplication
-from .pdf import render_application_html
+from .pdf import application_pdf_filename, render_application_html
 from .translations import TranslationError, Translator
 
 GUARDIAN_SSN = "010170-999X"
@@ -185,11 +186,53 @@ class PreschoolApplicationPdfTests(APITestCase):
         return reverse("preschool-application-pdf", kwargs={"uuid": application.pk})
 
     def test_download_submitted(self, _):
-        response = self.client.get(self.pdf_url(self.create_application()), {"lang": "sv"})
+        application = self.create_application(submitted_at=datetime(2026, 10, 20, 12, tzinfo=UTC))
+        response = self.client.get(self.pdf_url(application), {"lang": "sv"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response["Content-Type"], "application/pdf")
-        self.assertEqual(response["Content-Disposition"], 'attachment; filename="esiopetusilmoittautuminen.pdf"')
+        self.assertEqual(response["Content-Disposition"], 'attachment; filename="esiopetusilmoittautuminen_2026-10-20_Testi_Lapsi.pdf"')
         self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_filename(self, _):
+        # 22:30 UTC is already the next day in Helsinki.
+        application = self.create_application(nimi='Äijä  Ö/l*j"y', submitted_at=datetime(2026, 10, 20, 22, 30, tzinfo=UTC))
+        self.assertEqual(application_pdf_filename(application), "esiopetusilmoittautuminen_2026-10-21_Äijä_Öljy.pdf")
+
+    def test_filename_non_latin_and_invisible_characters(self, _):
+        submitted_at = datetime(2026, 10, 20, 12, tzinfo=UTC)
+        cases = {
+            "Владимир Петров": "esiopetusilmoittautuminen_2026-10-20_Владимир_Петров.pdf",
+            "李 小龙": "esiopetusilmoittautuminen_2026-10-20_李_小龙.pdf",
+            # Control characters count as spaces.
+            "Testi\tLapsi\n": "esiopetusilmoittautuminen_2026-10-20_Testi_Lapsi.pdf",
+            # Format characters (right-to-left override, zero-width joiner, BOM) are dropped.
+            "Testi\u202e\u200d\ufeffLapsi": "esiopetusilmoittautuminen_2026-10-20_TestiLapsi.pdf",
+        }
+        for nimi, expected in cases.items():
+            with self.subTest(nimi=nimi):
+                application = self.create_application(nimi=nimi, submitted_at=submitted_at)
+                self.assertEqual(application_pdf_filename(application), expected)
+
+    def test_filename_max_length(self, _):
+        submitted_at = datetime(2026, 10, 20, 12, tzinfo=UTC)
+        # "esiopetusilmoittautuminen_2026-10-20_" is 37 characters, leaving 63 for the name.
+        filename = application_pdf_filename(self.create_application(nimi="A" * 63 + "B", submitted_at=submitted_at))
+        self.assertEqual(filename, "esiopetusilmoittautuminen_2026-10-20_" + "A" * 63 + ".pdf")
+        # Counted in characters, not bytes.
+        filename = application_pdf_filename(self.create_application(nimi="😀" * 80, submitted_at=submitted_at))
+        self.assertEqual(len(filename.removesuffix(".pdf")), 100)
+        # No trailing underscore when the cut lands right after one.
+        filename = application_pdf_filename(self.create_application(nimi="A" * 62 + " B", submitted_at=submitted_at))
+        self.assertEqual(filename, "esiopetusilmoittautuminen_2026-10-20_" + "A" * 62 + ".pdf")
+
+    def test_filename_without_date_and_name(self, _):
+        application = self.create_application(nimi="", submitted_at=None)
+        self.assertEqual(application_pdf_filename(application), "esiopetusilmoittautuminen.pdf")
+
+    def test_filename_header_with_non_ascii_name(self, _):
+        application = self.create_application(nimi="Äijä", submitted_at=datetime(2026, 10, 20, 12, tzinfo=UTC))
+        response = self.client.get(self.pdf_url(application))
+        self.assertEqual(response["Content-Disposition"], "attachment; filename*=utf-8''esiopetusilmoittautuminen_2026-10-20_%C3%84ij%C3%A4.pdf")
 
     def test_draft_is_not_found(self, _):
         application = self.create_application(status=ApplicationStatus.DRAFT)
