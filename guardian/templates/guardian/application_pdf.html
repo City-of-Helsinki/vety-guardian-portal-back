@@ -1,0 +1,112 @@
+{% load application_pdf %}
+{% comment %}
+  Application PDF, rendered by guardian/pdf.py.
+  Mirrors vety-guardian-portal-front/src/components/application-form/steps/Esikatselu.tsx — keep in sync.
+  Differences from the site: Helsinki logo added; no "esikatselu.title" heading, no "Muokkaa" links and no
+  "already submitted" notification. The header (title + child's name) comes from src/pages/Application.tsx.
+{% endcomment %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <title>{% t "title" %} – {{ application.nimi }}</title>
+  <style>{{ css|safe }}</style>
+</head>
+<body>
+  <header class="page-header">
+    <img class="logo" src="{{ logo }}" alt="Helsinki">
+  </header>
+  <h1 data-testid="title-application">{% t "title" %}</h1>
+  <h2>{{ application.nimi }}</h2>
+  <div class="divider"></div>
+
+  <div class="step-container" data-testid="step-esikatselu">
+    <section class="section" data-testid="section-lapsen-tiedot">
+      <div class="section-title"><h3>{% t "esikatselu.lapsenTiedotTitle" %}</h3></div>
+      <div class="markdown-content" data-testid="text-lapsen-tiedot">{% t_markdown "esikatselu.lapsenTiedotText" %}</div>
+      <div class="wrapper">
+        {% label_value "esikatselu.lapsenNimi" application.nimi testid="summary-lapsi-nimi" %}
+      </div>
+      <div class="wrapper">
+        {% label_value "esikatselu.henkilotunnus" application.henkilotunnus testid="summary-lapsi-henkilotunnus" %}
+        {% label_value "esikatselu.syntymavuosi" application.syntymavuosi testid="summary-lapsi-syntymavuosi" %}
+        {% label_value "esikatselu.karttaosoite" application.karttaosoite testid="summary-lapsi-karttaosoite" %}
+      </div>
+      <div class="divider"></div>
+    </section>
+
+    <h3 data-testid="title-ilmoittautuminen">{% t "esikatselu.ilmoittautuminenTitle" %}</h3>
+    <div class="markdown-content" data-testid="text-ilmoittautuminen">{% t_markdown "esikatselu.ilmoittautuminenText" %}</div>
+    <div class="divider"></div>
+    <div class="wrapper">
+      {% t "esiopetusAlkaa" as esiopetus_alkaa %}
+      {% label_value "esikatselu.esiopetusAlkaa" esiopetus_alkaa testid="summary-esiopetus-alkaa" %}
+    </div>
+    <div class="divider"></div>
+
+    <section class="section" data-testid="section-kieli">
+      <div class="section-title"><h3>{% t "esikatselu.kieli" %}</h3></div>
+      {% t "language."|add:application.kieli %}
+      <div class="divider"></div>
+    </section>
+
+    <section class="section" data-testid="section-tuki-ja-laakehoito">
+      <div class="section-title"><h3>{% t "esikatselu.tukiJaLaakehoito" %}</h3></div>
+      {% if not application.erityisen_tuen_tarve and not application.laakehoidon_tarve %}
+        {% t "esikatselu.eiTuenTaiLaakehoidonTarvetta" %}
+      {% else %}
+        <div>
+          {% if application.erityisen_tuen_tarve %}<p data-testid="summary-erityinen-tuki">{% t "tukiJaLaakehoito.erityinenTukiLabel" %}</p>{% endif %}
+          {% if application.laakehoidon_tarve %}<p data-testid="summary-laakehoito">{% t "tukiJaLaakehoito.laakehoitoLabel" %}</p>{% endif %}
+        </div>
+      {% endif %}
+      <div class="divider"></div>
+    </section>
+
+    <section class="section" data-testid="section-varhaiskasvatus">
+      <div class="section-title"><h3>{% t "esikatselu.varhaiskasvatus" %}</h3></div>
+      <div class="wrapper">
+        {% label_value "esikatselu.taydentavaAlkaa" application.taydentava_varhaiskasvatus_aloitus|date:"j.n.Y" testid="summary-taydentava-alkaa" %}
+        {% label_value "esikatselu.taydentavaLaajuus" laajuus testid="summary-taydentava-laajuus" %}
+      </div>
+      <div class="wrapper">
+        {% label_value "esikatselu.arkipoissaolot" arkipoissaolot testid="summary-arkipoissaolot" %}
+      </div>
+      <div class="divider"></div>
+    </section>
+
+    <section class="section" data-testid="section-huoltajan-tiedot">
+      <div class="section-title"><h3>{% t "esikatselu.huoltajanTiedotTitle" %}</h3></div>
+      <div class="wrapper">
+        {% label_value "esikatselu.huoltajanNimi" application.h1_nimi testid="summary-h1-nimi" %}
+      </div>
+      <div class="wrapper">
+        {% label_value "esikatselu.osoite" application.h1_osoite testid="summary-h1-osoite" %}
+      </div>
+      <div class="wrapper">
+        {% label_value "esikatselu.puhelinnumero" application.h1_puhelinnumero testid="summary-h1-puhelinnumero" %}
+        {% label_value "esikatselu.sahkoposti" application.h1_sahkoposti testid="summary-h1-sahkoposti" %}
+      </div>
+      <div class="divider"></div>
+    </section>
+
+    {% if application.h2_nimi %}
+      <section class="section" data-testid="section-muut-huoltajat">
+        <div class="section-title"><h3>{% t "esikatselu.muutHuoltajatTitle" %}</h3></div>
+        <p data-testid="text-muut-huoltajat">{% t "esikatselu.muutHuoltajatText" %}</p>
+        <div class="wrapper">
+          {% label_value "esikatselu.huoltajanNimi" application.h2_nimi testid="summary-h2-nimi" %}
+        </div>
+        <div class="wrapper">
+          {% label_value "esikatselu.osoite" application.h2_osoite testid="summary-h2-osoite" %}
+        </div>
+        <div class="wrapper">
+          {% label_value "esikatselu.puhelinnumero" application.h2_puhelinnumero testid="summary-h2-puhelinnumero" %}
+          {% label_value "esikatselu.sahkoposti" application.h2_sahkoposti testid="summary-h2-sahkoposti" %}
+        </div>
+        <div class="divider"></div>
+      </section>
+    {% endif %}
+  </div>
+</body>
+</html>

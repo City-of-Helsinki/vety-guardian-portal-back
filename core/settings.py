@@ -209,6 +209,14 @@ HELSINKI_PROFILE_API_AUDIENCE = env.str("HELSINKI_PROFILE_API_AUDIENCE", default
 HELSINKI_PROFILE_API_TIMEOUT = env.int("HELSINKI_PROFILE_API_TIMEOUT", default=10)
 
 
+# Locize translations for the application PDF (guardian/translations.py).
+# Same project as the frontend's VITE_LOCIZE_PROJECT_ID, so the PDF uses the same texts as the site.
+LOCIZE_CDN_URL = env.str("LOCIZE_CDN_URL", default="https://api.lite.locize.app")  # pyright: ignore
+LOCIZE_PROJECT_ID = env.str("LOCIZE_PROJECT_ID", default="")  # pyright: ignore
+LOCIZE_VERSION = env.str("LOCIZE_VERSION", default="latest")  # pyright: ignore
+LOCIZE_TIMEOUT = env.int("LOCIZE_TIMEOUT", default=10)
+
+
 # OpenAPI schema
 # https://drf-spectacular.readthedocs.io/en/latest/
 
