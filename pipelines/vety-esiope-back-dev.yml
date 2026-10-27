@@ -63,5 +63,7 @@ extends:
       HELSINKI_PROFILE_API_URL: "https://profile-api.test.hel.ninja/graphql/"
       HELSINKI_PROFILE_API_AUDIENCE: "profile-api-test"
       HELSINKI_PROFILE_API_TIMEOUT: "10"
+      # Translations for the application PDF; same Locize project as the frontend's VITE_LOCIZE_PROJECT_ID
+      LOCIZE_PROJECT_ID: "8d851889-2950-437b-80e8-b4ef26317ff9"
       # VTJ_HEL_SHARED_SECRET_HEADER: ""
       # Secrets (SECRET_KEY, DB_PASSWORD, VTJ_HEL_SHARED_SECRET) must not be defined here

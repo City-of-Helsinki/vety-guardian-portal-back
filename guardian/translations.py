@@ -20,6 +20,10 @@ logger = logging.getLogger("vety-guardian-portal-back")
 SUPPORTED_LANGUAGES = ("fi", "sv", "en")
 FALLBACK_LANGUAGE = "fi"
 NAMESPACE = "lomake"
+# Seconds the Locize texts are kept in Django's cache (only successful responses are cached).
+# A text changed in Locize can therefore take up to an hour longer to show up in the PDF than on the site.
+# No CACHES setting is defined, so this is Django's default per-process memory cache: each uWSGI worker keeps
+# its own copy, and restarting the pods clears it immediately.
 CACHE_TIMEOUT = 60 * 60
 
 
