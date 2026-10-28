@@ -51,7 +51,7 @@ extends:
       CORS_ALLOWED_ORIGINS: "https://vety-esiope-front.test-se.hel.ninja"
       CSRF_TRUSTED_ORIGINS: "https://vety-esiope-front.test-se.hel.ninja"
       TOKEN_AUTH_ISSUER: "https://tunnistus.test.hel.ninja/auth/realms/helsinki-tunnistus"
-      TOKEN_AUTH_AUDIENCE: "vety-api-dev"
+      TOKEN_AUTH_AUDIENCE: "vety-api-test"
       HELSINKI_PROFILE_API_URL: "https://profile-api.test.hel.ninja/graphql/"
       HELSINKI_PROFILE_API_AUDIENCE: "profile-api-test"
       HELSINKI_PROFILE_API_TIMEOUT: "10"
