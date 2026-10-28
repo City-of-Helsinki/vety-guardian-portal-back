@@ -94,7 +94,7 @@
     {% if application.h2_nimi %}
       <section class="section" data-testid="section-muut-huoltajat">
         <div class="section-title"><h3>{% t "esikatselu.muutHuoltajatTitle" %}</h3></div>
-        <p data-testid="text-muut-huoltajat">{% t "esikatselu.muutHuoltajatText" %}</p>
+        <div class="markdown-content" data-testid="text-muut-huoltajat">{% t_markdown "esikatselu.muutHuoltajatText" %}</div>
         <div class="wrapper">
           {% label_value "esikatselu.huoltajanNimi" application.h2_nimi testid="summary-h2-nimi" %}
           {% label_value "esikatselu.henkilotunnus" application.h2_henkilotunnus testid="summary-h2-henkilotunnus" %}

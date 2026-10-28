@@ -212,6 +212,7 @@ TRANSLATIONS = {
             "lapsenNimi": "Lapsen nimi",
             "lapsenTiedotText": "Tiedot ovat [DVV:ltä](https://dvv.fi).",
             "muutHuoltajatTitle": "Muut huoltajat",
+            "muutHuoltajatText": "Muut huoltajat saavat **tiedon**.",
             "sahkoposti": "Sähköpostiosoite",
         },
         "edit": "Muokkaa",
@@ -335,6 +336,8 @@ class PreschoolApplicationPdfTests(APITestCase):
         html = render_application_html(self.create_application(h2_nimi="Huoltaja Kaksi", h2_henkilotunnus="010101-0101"), "fi")
         self.assertIn("Muut huoltajat", html)
         self.assertIn("Huoltaja Kaksi", html)
+        # Markdown like <MarkdownContent> in Esikatselu.tsx
+        self.assertInHTML("<p>Muut huoltajat saavat <strong>tiedon</strong>.</p>", html)
         self.assertInHTML(
             '<div class="label-value" data-testid="summary-h2-henkilotunnus"><span class="label">esikatselu.henkilotunnus</span><span>010101-0101</span></div>',
             html,
