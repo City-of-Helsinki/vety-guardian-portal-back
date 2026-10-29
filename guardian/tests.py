@@ -1,5 +1,10 @@
 import uuid
+from datetime import UTC, datetime
+from unittest import mock
 
+import requests
+from django.core.cache import cache
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -8,6 +13,8 @@ from authentication.models import CustomUser
 from vtj.models import Dependant, Guardian
 
 from .models.application import ApplicationStatus, PreschoolApplication
+from .pdf import application_pdf_filename, render_application_html
+from .translations import TranslationError, Translator
 
 GUARDIAN_SSN = "010170-999X"
 
@@ -193,3 +200,173 @@ class PreschoolApplicationApiTests(APITestCase):
         application.refresh_from_db()
         self.assertEqual(application.h1_sahkoposti, "h1@example.com")
         self.assertEqual(application.h1_puhelinnumero, "")
+
+
+TRANSLATIONS = {
+    "fi": {
+        "title": "Esiopetukseen ilmoittautuminen",
+        "language": {"fi": "Suomi"},
+        "esikatselu": {
+            "title": "Esikatselu ja lähetys",
+            "alreadySubmitted": "Ilmoittautuminen on lähetetty",
+            "lapsenNimi": "Lapsen nimi",
+            "lapsenTiedotText": "Tiedot ovat [DVV:ltä](https://dvv.fi).",
+            "muutHuoltajatTitle": "Muut huoltajat",
+            "muutHuoltajatText": "Muut huoltajat saavat **tiedon**.",
+            "sahkoposti": "Sähköpostiosoite",
+        },
+        "edit": "Muokkaa",
+    },
+    "sv": {"esikatselu": {"lapsenNimi": "Barnets namn"}},
+    "en": {},
+}
+
+
+def fake_get_translations(lang: str) -> dict:
+    return TRANSLATIONS[lang]
+
+
+@mock.patch("guardian.translations.get_translations", side_effect=fake_get_translations)
+class PreschoolApplicationPdfTests(APITestCase):
+    def setUp(self):
+        guardian = Guardian.objects.create(ssn=GUARDIAN_SSN)
+        self.dependant = Dependant.objects.create(ssn="010118-9998")
+        self.dependant.guardians.add(guardian)
+        self.client.force_authenticate(create_user(GUARDIAN_SSN))
+
+    def create_application(self, **fields) -> PreschoolApplication:
+        defaults = {
+            "dependant": self.dependant,
+            "status": ApplicationStatus.SUBMITTED,
+            "nimi": "Testi Lapsi",
+            "henkilotunnus": "010118-9998",
+            "kieli": "fi",
+            "h1_nimi": "Huoltaja Yksi",
+            "h1_sahkoposti": "huoltaja@example.com",
+        }
+        return PreschoolApplication.objects.create(**(defaults | fields))
+
+    def pdf_url(self, application: PreschoolApplication) -> str:
+        return reverse("preschool-application-pdf", kwargs={"uuid": application.pk})
+
+    def test_download_submitted(self, _):
+        application = self.create_application(submitted_at=datetime(2026, 10, 20, 12, tzinfo=UTC))
+        response = self.client.get(self.pdf_url(application), {"lang": "sv"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response["Content-Disposition"], 'attachment; filename="esiopetusilmoittautuminen_2026-10-20_Testi_Lapsi.pdf"')
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_filename(self, _):
+        # 22:30 UTC is already the next day in Helsinki.
+        application = self.create_application(nimi='Äijä  Ö/l*j"y', submitted_at=datetime(2026, 10, 20, 22, 30, tzinfo=UTC))
+        self.assertEqual(application_pdf_filename(application), "esiopetusilmoittautuminen_2026-10-21_Äijä_Öljy.pdf")
+
+    def test_filename_non_latin_and_invisible_characters(self, _):
+        submitted_at = datetime(2026, 10, 20, 12, tzinfo=UTC)
+        cases = {
+            "Владимир Петров": "esiopetusilmoittautuminen_2026-10-20_Владимир_Петров.pdf",
+            "李 小龙": "esiopetusilmoittautuminen_2026-10-20_李_小龙.pdf",
+            # Control characters count as spaces.
+            "Testi\tLapsi\n": "esiopetusilmoittautuminen_2026-10-20_Testi_Lapsi.pdf",
+            # Format characters (right-to-left override, zero-width joiner, BOM) are dropped.
+            "Testi\u202e\u200d\ufeffLapsi": "esiopetusilmoittautuminen_2026-10-20_TestiLapsi.pdf",
+        }
+        for nimi, expected in cases.items():
+            with self.subTest(nimi=nimi):
+                application = self.create_application(nimi=nimi, submitted_at=submitted_at)
+                self.assertEqual(application_pdf_filename(application), expected)
+
+    def test_filename_max_length(self, _):
+        submitted_at = datetime(2026, 10, 20, 12, tzinfo=UTC)
+        # "esiopetusilmoittautuminen_2026-10-20_" is 37 characters, leaving 63 for the name.
+        filename = application_pdf_filename(self.create_application(nimi="A" * 63 + "B", submitted_at=submitted_at))
+        self.assertEqual(filename, "esiopetusilmoittautuminen_2026-10-20_" + "A" * 63 + ".pdf")
+        # Counted in characters, not bytes.
+        filename = application_pdf_filename(self.create_application(nimi="😀" * 80, submitted_at=submitted_at))
+        self.assertEqual(len(filename.removesuffix(".pdf")), 100)
+        # No trailing underscore when the cut lands right after one.
+        filename = application_pdf_filename(self.create_application(nimi="A" * 62 + " B", submitted_at=submitted_at))
+        self.assertEqual(filename, "esiopetusilmoittautuminen_2026-10-20_" + "A" * 62 + ".pdf")
+
+    def test_filename_without_date_and_name(self, _):
+        application = self.create_application(nimi="", submitted_at=None)
+        self.assertEqual(application_pdf_filename(application), "esiopetusilmoittautuminen.pdf")
+
+    def test_filename_header_with_non_ascii_name(self, _):
+        application = self.create_application(nimi="Äijä", submitted_at=datetime(2026, 10, 20, 12, tzinfo=UTC))
+        response = self.client.get(self.pdf_url(application))
+        self.assertEqual(response["Content-Disposition"], "attachment; filename*=utf-8''esiopetusilmoittautuminen_2026-10-20_%C3%84ij%C3%A4.pdf")
+
+    def test_draft_is_not_found(self, _):
+        application = self.create_application(status=ApplicationStatus.DRAFT)
+        response = self.client.get(self.pdf_url(application))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_other_guardians_application_is_not_found(self, _):
+        application = self.create_application()
+        self.client.force_authenticate(create_user("010101-0101"))
+        response = self.client.get(self.pdf_url(application))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unsupported_language(self, _):
+        response = self.client.get(self.pdf_url(self.create_application()), {"lang": "de"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_translations_unavailable(self, get_translations):
+        get_translations.side_effect = TranslationError("down")
+        response = self.client.get(self.pdf_url(self.create_application()))
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    def test_html_content(self, _):
+        html = render_application_html(self.create_application(h1_henkilotunnus=GUARDIAN_SSN), "fi")
+        for text in ["Esiopetukseen ilmoittautuminen", "Testi Lapsi", "010118-9998", "huoltaja@example.com", "Lapsen nimi", "Suomi"]:
+            self.assertIn(text, html)
+        self.assertInHTML(
+            f'<div class="label-value" data-testid="summary-h1-henkilotunnus"><span class="label">esikatselu.henkilotunnus</span><span>{GUARDIAN_SSN}</span></div>',
+            html,
+        )
+        self.assertIn('<a href="https://dvv.fi">DVV:ltä</a>', html)
+        self.assertIn("data:image/svg+xml;base64,", html)
+        # Left out of the PDF: the step title, edit links, the "already submitted" notification and the empty muut huoltajat.
+        for text in ["Esikatselu ja lähetys", "Muokkaa", "Ilmoittautuminen on lähetetty", "Muut huoltajat"]:
+            self.assertNotIn(text, html)
+
+    def test_html_muut_huoltajat(self, _):
+        html = render_application_html(self.create_application(h2_nimi="Huoltaja Kaksi", h2_henkilotunnus="010101-0101"), "fi")
+        self.assertIn("Muut huoltajat", html)
+        self.assertIn("Huoltaja Kaksi", html)
+        # Markdown like <MarkdownContent> in Esikatselu.tsx
+        self.assertInHTML("<p>Muut huoltajat saavat <strong>tiedon</strong>.</p>", html)
+        self.assertInHTML(
+            '<div class="label-value" data-testid="summary-h2-henkilotunnus"><span class="label">esikatselu.henkilotunnus</span><span>010101-0101</span></div>',
+            html,
+        )
+
+    def test_html_escapes_values(self, _):
+        html = render_application_html(self.create_application(h1_puhelinnumero="<b>040</b>"), "fi")
+        self.assertIn("&lt;b&gt;040&lt;/b&gt;", html)
+
+    def test_html_falls_back_to_finnish_then_key(self, _):
+        html = render_application_html(self.create_application(), "sv")
+        self.assertIn("Barnets namn", html)
+        self.assertIn("Sähköpostiosoite", html)
+        self.assertIn("esikatselu.henkilotunnus", html)
+
+
+@override_settings(LOCIZE_CDN_URL="https://locize.example", LOCIZE_PROJECT_ID="project", LOCIZE_VERSION="latest")
+class TranslationsTests(SimpleTestCase):
+    def setUp(self):
+        cache.clear()
+
+    @mock.patch("guardian.translations.requests.get")
+    def test_fetches_and_caches(self, get):
+        get.return_value.json.return_value = {"esikatselu": {"kieli": "Kieli"}}
+        self.assertEqual(Translator("fi")("esikatselu.kieli"), "Kieli")
+        Translator("fi")
+        get.assert_called_once_with("https://locize.example/project/latest/fi/lomake", timeout=10)
+
+    @mock.patch("guardian.translations.requests.get", side_effect=requests.ConnectionError("down"))
+    def test_request_failure(self, _):
+        with self.assertRaises(TranslationError):
+            Translator("fi")

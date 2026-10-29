@@ -1,0 +1,125 @@
+/*
+  Styles of the application PDF (guardian/templates/guardian/application_pdf.html).
+  Mirrors the Esikatselu step of vety-guardian-portal-front — keep in sync with:
+  - src/components/summary/Summary.module.css (.section, .section-title, .wrapper, .label-value, .label)
+  - src/components/divider/Divider.module.css (.divider)
+  - src/components/markdown-content/MarkdownContent.module.css (.markdown-content)
+  - src/index.css and src/App.css (fonts, colours, headings)
+  Sizes are scaled down from the site for A4 paper.
+*/
+
+@page {
+  size: A4;
+  margin: 18mm 18mm 20mm;
+
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-size: 8pt;
+    color: #6b6375;
+  }
+}
+
+html {
+  font-family: system-ui, 'Segoe UI', Roboto, 'Noto Sans', 'DejaVu Sans', sans-serif;
+  font-size: 10pt;
+  line-height: 145%;
+  letter-spacing: 0.1pt;
+  color: #6b6375;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+h1 {
+  font-size: 22pt;
+  line-height: 120%;
+  margin: 12pt 0;
+  color: #0072c6;
+  font-weight: bold;
+}
+
+h2 {
+  font-size: 14pt;
+  line-height: 118%;
+  font-weight: 500;
+  color: #08060d;
+}
+
+h3 {
+  font-size: 12pt;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.page-header {
+  margin-bottom: 6pt;
+}
+
+.logo {
+  height: 15mm;
+}
+
+.divider {
+  width: 100%;
+  background: #0072c6;
+  height: 0.5pt;
+  margin-top: 14pt;
+  margin-bottom: 14pt;
+}
+
+.section {
+  margin-top: 14pt;
+  break-inside: avoid;
+}
+
+.section-title {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: #0072c6;
+}
+
+.wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8pt 24pt;
+  margin-bottom: 8pt;
+}
+
+.label-value {
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.markdown-content {
+  padding: 6pt 0;
+  line-height: 1.63;
+}
+
+.markdown-content > :first-child {
+  margin-top: 0;
+}
+
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}

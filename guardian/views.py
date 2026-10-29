@@ -1,8 +1,14 @@
+import logging
 import uuid
 
+from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
+from django.db.models import QuerySet
+from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,8 +18,18 @@ from authentication.permissions import HasVerifiedIdentity
 from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
 
-from .models.application import PreschoolApplication
+from .models.application import ApplicationStatus, PreschoolApplication
+from .pdf import application_pdf_filename, render_application_pdf
 from .serializers import PreschoolApplicationSerializer
+from .translations import FALLBACK_LANGUAGE, SUPPORTED_LANGUAGES, TranslationError
+
+logger = logging.getLogger("vety-guardian-portal-back")
+
+
+def applications_for_guardian(user: AbstractBaseUser | AnonymousUser) -> QuerySet[PreschoolApplication]:
+    # Only applications for the logged-in guardian's own dependants; others look nonexistent.
+    ssn = user.national_identification_number  # pyright: ignore[reportAttributeAccessIssue]
+    return PreschoolApplication.objects.filter(dependant__guardians__ssn=ssn).distinct()
 
 
 class PreschoolApplicationCreateView(generics.CreateAPIView):
@@ -47,9 +63,57 @@ class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
     lookup_url_kwarg = "uuid"
 
     def get_queryset(self):
-        # Only applications for the logged-in guardian's own dependants; others look nonexistent.
-        ssn = self.request.user.national_identification_number  # pyright: ignore[reportAttributeAccessIssue]
-        return PreschoolApplication.objects.filter(dependant__guardians__ssn=ssn).distinct()
+        return applications_for_guardian(self.request.user)
+
+
+class PreschoolApplicationPdfView(generics.GenericAPIView):
+    """
+    GET /preschool-application-form/<uuid:uuid>/pdf/?lang=fi
+
+    Download the submitted application as a PDF, laid out like the Esikatselu step.
+    Drafts look nonexistent (404).
+    """
+
+    permission_classes = [HasVerifiedIdentity]
+    lookup_field = "id"
+    lookup_url_kwarg = "uuid"
+
+    def get_queryset(self):
+        return applications_for_guardian(self.request.user).filter(status=ApplicationStatus.SUBMITTED)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="lang",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=list(SUPPORTED_LANGUAGES),
+                default=FALLBACK_LANGUAGE,
+                description="Language of the PDF texts.",
+            ),
+        ],
+        responses={
+            (200, "application/pdf"): OpenApiResponse(response=OpenApiTypes.BINARY, description="The application as a PDF file."),
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+            503: ErrorResponseSerializer,
+        },
+    )
+    def get(self, request: Request, *args: object, **kwargs: object) -> HttpResponse | Response:
+        lang = request.query_params.get("lang", FALLBACK_LANGUAGE)
+        if lang not in SUPPORTED_LANGUAGES:
+            return Response({"error": "Unsupported language"}, status=status.HTTP_400_BAD_REQUEST)
+
+        application = self.get_object()
+        try:
+            pdf = render_application_pdf(application, lang)
+        except TranslationError as exc:
+            logger.error(f"Application PDF failed: {exc!s}")
+            return Response({"error": "Translations unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = content_disposition_header(True, application_pdf_filename(application))
+        return response
 
 
 class PreschoolApplicationForDependantView(APIView):

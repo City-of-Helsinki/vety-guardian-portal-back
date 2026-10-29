@@ -23,8 +23,9 @@ USER root
 COPY pyproject.toml uv.lock ./
 
 # gcc, python3.14-devel and pcre2-devel are needed to compile uWSGI and its plugins, tar and gzip to unpack python-uwsgi-common.
+# pango, harfbuzz and a font are needed by WeasyPrint to render the application PDF (guardian/pdf.py).
 RUN microdnf update -y && \
-    microdnf install -y nmap-ncat gcc python3.14-devel pcre2-devel tar gzip && \
+    microdnf install -y nmap-ncat gcc python3.14-devel pcre2-devel tar gzip pango harfbuzz dejavu-sans-fonts && \
     microdnf clean all && \
     uv sync --locked --no-install-project --no-dev --group prod
 
@@ -47,6 +48,6 @@ RUN mkdir -p ${STATIC_ROOT} && \
     chmod g+rwX ${STATIC_ROOT}
 
 USER 1001
-EXPOSE 8080/tcp 
+EXPOSE 8080/tcp
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
