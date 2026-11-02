@@ -41,6 +41,8 @@ urlpatterns = [
     path("auth/", include("authentication.urls")),
     path("", include("guardian.urls")),
     path("vtj/", include("vtj.urls")),
+    # Helsinki-profiili GDPR API
+    path("gdpr-api/", include("helsinki_gdpr.urls")),
 ]
 
 if settings.VTJ_MOCK_ENABLED:
