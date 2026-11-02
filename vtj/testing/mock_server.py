@@ -137,7 +137,7 @@ PEOPLE: dict[str, dict] = {
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
     # A family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot):
-    # mother 140904A998H and father 060999-951B are both guardians of 040220A999K.
+    # mother 140904A998H and father 060999-951B are both guardians of 040221A999U.
     "140904A998H": {
         "name": {
             "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
@@ -146,8 +146,8 @@ PEOPLE: dict[str, dict] = {
         "address": {"LahiosoiteS": "Vaasanpuistotie 15 B 26", "Postinumero": "65100", "PostitoimipaikkaS": "VAASA"},
         "Huollettava": [
             {
-                "Henkilotunnus": "040220A999K",
-                "Syntymaaika": "20200204",
+                "Henkilotunnus": "040221A999U",
+                "Syntymaaika": "20210204",
                 "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
                 "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
             },
@@ -163,8 +163,8 @@ PEOPLE: dict[str, dict] = {
         "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
         "Huollettava": [
             {
-                "Henkilotunnus": "040220A999K",
-                "Syntymaaika": "20200204",
+                "Henkilotunnus": "040221A999U",
+                "Syntymaaika": "20210204",
                 "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
                 "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
             },
@@ -172,7 +172,7 @@ PEOPLE: dict[str, dict] = {
         "Huoltaja": [],
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
-    "040220A999K": {
+    "040221A999U": {
         "name": {
             "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
             "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},

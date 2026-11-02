@@ -246,6 +246,14 @@ VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
 VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 
 
+# hki-vety, which receives the submitted applications (management command send_applications_to_vety).
+# VETY_API_URL is the API root, e.g. https://vety.example.fi/api
+VETY_API_URL = env("VETY_API_URL", default="")  # type: ignore[reportArgumentType]
+# DRF token of a hki-vety service user with the permission core.change_ilmoittautuneetlapset
+VETY_API_TOKEN = env("VETY_API_TOKEN", default="")  # type: ignore[reportArgumentType]
+VETY_API_TIMEOUT = env.int("VETY_API_TIMEOUT", default=10)
+
+
 # Test-data cleanup API for e2e tests at /test-data/ (see guardian/testing/views.py). Never enable in production.
 TEST_DATA_API_ENABLED = env.bool("TEST_DATA_API_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 # Shared secret the tests send in the X-Test-Data-Api-Key header. All requests are refused while it's empty.

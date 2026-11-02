@@ -106,7 +106,7 @@ fixtures (`vtj/testing/mock_server.py`) as one family:
 | ------ | ------------- | ------------------------------------- | ------------------------------- |
 | Mother | `140904A998H` | Joanna Melina Haapakoski Testihenkilo | Guardian of the child           |
 | Father | `060999-951B` | Elias Kumpulainen Testihenkilo        | Guardian of the child           |
-| Child  | `040220A999K` | Veeti Konrad Kauriaistes Testihenkilo | Born 2020-02-04, no Turvakielto |
+| Child  | `040221A999U` | Veeti Konrad Kauriaistes Testihenkilo | Born 2021-02-04, no Turvakielto |
 
 Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
 and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)
