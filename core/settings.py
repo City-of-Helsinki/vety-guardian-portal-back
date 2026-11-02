@@ -214,7 +214,7 @@ HELSINKI_PROFILE_API_TIMEOUT = env.int("HELSINKI_PROFILE_API_TIMEOUT", default=1
 # https://github.com/City-of-Helsinki/helsinki-profile-gdpr-api
 GDPR_API_MODEL = "authentication.CustomUser"
 GDPR_API_MODEL_LOOKUP = "uuid"
-GDPR_API_URL_PATTERN = "v1/user/<uuid:uuid>"
+GDPR_API_URL_PATTERN = "v1/profiles/<uuid:uuid>"
 GDPR_API_USER_PROVIDER = "authentication.gdpr.get_user"
 GDPR_API_DELETER = "authentication.gdpr.delete_gdpr_data"
 GDPR_API_QUERY_SCOPE = env.str("GDPR_API_QUERY_SCOPE", default="gdprquery")  # pyright: ignore
