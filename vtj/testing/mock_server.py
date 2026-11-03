@@ -137,7 +137,7 @@ PEOPLE: dict[str, dict] = {
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
     # A family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot):
-    # mother 140904A998H and father 060999-951B are both guardians of 040221A999U.
+    # mother 140904A998H and father 060999-951B are both guardians of 040220A999K.
     "140904A998H": {
         "name": {
             "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
@@ -146,8 +146,8 @@ PEOPLE: dict[str, dict] = {
         "address": {"LahiosoiteS": "Vaasanpuistotie 15 B 26", "Postinumero": "65100", "PostitoimipaikkaS": "VAASA"},
         "Huollettava": [
             {
-                "Henkilotunnus": "040221A999U",
-                "Syntymaaika": "20210204",
+                "Henkilotunnus": "040220A999K",
+                "Syntymaaika": "20200204",
                 "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
                 "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
             },
@@ -163,8 +163,8 @@ PEOPLE: dict[str, dict] = {
         "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
         "Huollettava": [
             {
-                "Henkilotunnus": "040221A999U",
-                "Syntymaaika": "20210204",
+                "Henkilotunnus": "040220A999K",
+                "Syntymaaika": "20200204",
                 "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
                 "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
             },
@@ -172,11 +172,12 @@ PEOPLE: dict[str, dict] = {
         "Huoltaja": [],
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
-    "040221A999U": {
+    "040220A999K": {
         "name": {
             "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
             "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
         },
+        # NOTE: Address was changed here from "LAIHIA" to "HELSINKI". Address in different in DVV test data is "LAIHIA".
         # "address": {"LahiosoiteS": "Vallintie 20 E 22", "Postinumero": "66400", "PostitoimipaikkaS": "LAIHIA"},
         "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
         "Huollettava": [],
