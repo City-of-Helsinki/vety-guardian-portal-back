@@ -475,6 +475,21 @@ wheels = [
 ]
 
 [[package]]
+name = "drf-oidc-auth"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "djangorestframework" },
+    { name = "joserfc" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/65/e59dd440af1c914b3447e09bbe0e459db8fbf245ae23d9e53d5e40fe7e39/drf_oidc_auth-4.0.0.tar.gz", hash = "sha256:1a34f01427e5a14f5113976c003f45a4f39e82e578be6bf0dbcc4fe25d7c33a8", size = 10042, upload-time = "2026-10-08T06:21:30.645Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/dc/e936622df1c6a515484b6279cb760cdcf3ec237da85a439367a0ba480bed/drf_oidc_auth-4.0.0-py3-none-any.whl", hash = "sha256:f6c1a9190dccd261595b037cb0284b76ab12c49fc465b46d395913d8fa8ec92c", size = 7110, upload-time = "2026-10-08T06:21:29.465Z" },
+]
+
+[[package]]
 name = "drf-spectacular"
 version = "0.30.0"
 source = { registry = "https://pypi.org/simple" }
@@ -549,6 +564,21 @@ woff = [
 ]
 
 [[package]]
+name = "helsinki-profile-gdpr-api"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-helusers" },
+    { name = "djangorestframework" },
+    { name = "drf-oidc-auth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/4b/70307eeb427543141f87b078670a5b79b938f2b40ac197e7bb74b759df67/helsinki_profile_gdpr_api-1.1.0.tar.gz", hash = "sha256:21388b5baaa4ea46e114137087273be12aa4de1d767601ff1854526411638257", size = 19530, upload-time = "2026-04-09T12:46:53.468Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/6d/351c60fbce515dd2ace7a0bddf263c045d31484a4793f53304edd3a43710/helsinki_profile_gdpr_api-1.1.0-py3-none-any.whl", hash = "sha256:8b1b80f1f8f1f2e5c2f7cf12a8084a6cee40da207a4c82caf8f655cbbc2c4d2f", size = 9416, upload-time = "2026-04-09T12:46:52.62Z" },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.19"
 source = { registry = "https://pypi.org/simple" }
@@ -582,6 +612,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+]
+
+[[package]]
+name = "joserfc"
+version = "1.7.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/15/48ff246732232d35ee234228def22b52455fcc55577f06146602399a29b0/joserfc-1.7.7.tar.gz", hash = "sha256:471d0fd12a5a0d1c0942de280f39efe6f597878315033270b504d4d006d25510", size = 237446, upload-time = "2026-10-19T00:30:29.974Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/9f/934db284aa22f37af59708e382903860d4b81329c137b1b0ed2745daeb65/joserfc-1.7.7-py3-none-any.whl", hash = "sha256:06979cfbab78bc802f14c0358f32969826cc26720e13cb38926ffdc86bc0cb2c", size = 71758, upload-time = "2026-10-19T00:30:28.498Z" },
 ]
 
 [[package]]
@@ -1108,6 +1150,7 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "djangorestframework-camel-case" },
     { name = "drf-spectacular" },
+    { name = "helsinki-profile-gdpr-api" },
     { name = "markdown-it-py" },
     { name = "psycopg", extra = ["binary"] },
     { name = "requests" },
@@ -1138,6 +1181,7 @@ requires-dist = [
     { name = "djangorestframework", specifier = ">=3.18.0" },
     { name = "djangorestframework-camel-case", specifier = ">=1.4.2" },
     { name = "drf-spectacular", specifier = ">=0.30.0" },
+    { name = "helsinki-profile-gdpr-api", specifier = ">=1.1.0" },
     { name = "markdown-it-py", specifier = ">=4.2.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.5" },
     { name = "requests", specifier = ">=2.34.2" },

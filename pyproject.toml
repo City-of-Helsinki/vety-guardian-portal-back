@@ -29,6 +29,7 @@ dependencies = [
     "djangorestframework>=3.18.0",
     "djangorestframework-camel-case>=1.4.2",
     "drf-spectacular>=0.30.0",
+    "helsinki-profile-gdpr-api>=1.1.0",
     "markdown-it-py>=4.2.0",
     "psycopg[binary]>=3.3.5",
     "requests>=2.34.2",

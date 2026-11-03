@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "authentication",
     "guardian",
     "vtj",
+    "helsinki_gdpr",
 ]
 
 MIDDLEWARE = [
@@ -197,6 +198,7 @@ JSON_CAMEL_CASE = {
 OIDC_API_TOKEN_AUTH = {
     "ISSUER": env.list("TOKEN_AUTH_ISSUER", default=[]),  # pyright: ignore
     "AUDIENCE": env.list("TOKEN_AUTH_AUDIENCE", default=[]),  # pyright: ignore
+    "API_AUTHORIZATION_FIELD": env.list("TOKEN_AUTH_AUTHORIZATION_FIELD", default=["authorization.permissions.scopes"]),  # pyright: ignore
 }
 # Seconds of clock skew tolerated between us and Tunnistus when validating token iat/nbf/exp
 # (helusers has no setting for it, see authentication/jwt_leeway.py).
@@ -207,6 +209,16 @@ HELSINKI_PROFILE_API_URL = env.str("HELSINKI_PROFILE_API_URL", default="")  # py
 # Audience of the profile API token the frontend sends to /auth/identity/.
 HELSINKI_PROFILE_API_AUDIENCE = env.str("HELSINKI_PROFILE_API_AUDIENCE", default="")  # pyright: ignore
 HELSINKI_PROFILE_API_TIMEOUT = env.int("HELSINKI_PROFILE_API_TIMEOUT", default=10)
+
+# Helsinki-profiili GDPR API (helsinki_gdpr)
+# https://github.com/City-of-Helsinki/helsinki-profile-gdpr-api
+GDPR_API_MODEL = "authentication.CustomUser"
+GDPR_API_MODEL_LOOKUP = "uuid"
+GDPR_API_URL_PATTERN = "v1/profiles/<uuid:uuid>"
+GDPR_API_USER_PROVIDER = "authentication.gdpr.get_user"
+GDPR_API_DELETER = "authentication.gdpr.delete_gdpr_data"
+GDPR_API_QUERY_SCOPE = env.str("GDPR_API_QUERY_SCOPE", default="gdprquery")  # pyright: ignore
+GDPR_API_DELETE_SCOPE = env.str("GDPR_API_DELETE_SCOPE", default="gdprdelete")  # pyright: ignore
 
 
 # Locize translations for the application PDF (guardian/translations.py).

@@ -13,6 +13,9 @@ from jwt.algorithms import RSAAlgorithm
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from guardian.models.application import ApplicationStatus, PreschoolApplication
+from vtj.models import Dependant, Guardian
+
 from .models import CustomUser
 from .profile import ProfileError
 
@@ -142,3 +145,93 @@ class TokenClockSkewTests(SimpleTestCase):
             "1.3.0",
             "helusers was upgraded: recheck authentication/jwt_leeway.py (see this test's comment)",
         )
+
+
+GDPR_QUERY_SCOPE = "gdprquery"
+GDPR_DELETE_SCOPE = "gdprdelete"
+
+
+def gdpr_token(*scopes: str) -> mock.Mock:
+    """request.auth with the given API scopes (helusers ApiTokenAuthentication's ApiAuthorization)."""
+    token = mock.Mock()
+    token.has_api_scopes.side_effect = lambda *required: all(scope in scopes for scope in required)
+    return token
+
+
+def find_child(node: dict, key: str) -> dict:
+    return next(child for child in node["children"] if child["key"] == key)
+
+
+@override_settings(GDPR_API_QUERY_SCOPE=GDPR_QUERY_SCOPE, GDPR_API_DELETE_SCOPE=GDPR_DELETE_SCOPE)
+class GdprApiTests(APITestCase):
+    guardian_ssn = "010170-999X"
+
+    def setUp(self):
+        self.user = CustomUser.objects.create(
+            uuid=uuid.uuid4(), username="guardian", national_identification_number=self.guardian_ssn, helsinki_profile_id=uuid.uuid4()
+        )
+        self.url = reverse("helsinki_gdpr:gdpr_v1", kwargs={"uuid": self.user.uuid})
+        guardian = Guardian.objects.create(ssn=self.guardian_ssn, last_name="Example")
+        dependant = Dependant.objects.create(ssn="010118-9998")
+        dependant.guardians.add(guardian)
+        self.application = PreschoolApplication.objects.create(
+            dependant=dependant, h1_henkilotunnus=self.guardian_ssn, h1_sahkoposti="parent@example.com", status=ApplicationStatus.SUBMITTED
+        )
+        self.draft = PreschoolApplication.objects.create(h2_henkilotunnus=self.guardian_ssn)
+        self.other_application = PreschoolApplication.objects.create(h1_henkilotunnus="010180-9997")
+
+    def test_query_returns_user_applications_and_guardian(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.json()
+        self.assertEqual(body["key"], "CUSTOMUSER")
+        self.assertIn({"key": "NATIONAL_IDENTIFICATION_NUMBER", "value": self.guardian_ssn}, body["children"])
+        applications = find_child(body, "PRESCHOOLAPPLICATIONS")["children"]
+        self.assertEqual([find_child(application, "ID")["value"] for application in applications], [str(self.application.pk), str(self.draft.pk)])
+        self.assertIn({"key": "H1_SAHKOPOSTI", "value": "parent@example.com"}, applications[0]["children"])
+        guardians = find_child(body, "GUARDIANS")["children"]
+        self.assertIn({"key": "LAST_NAME", "value": "Example"}, guardians[0]["children"])
+
+    def test_query_without_verified_identity_returns_only_user(self):
+        self.user.national_identification_number = ""
+        self.user.save()
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("PRESCHOOLAPPLICATIONS", [child["key"] for child in response.json()["children"]])
+
+    def test_query_requires_query_scope(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_other_users_data_is_forbidden(self):
+        other = CustomUser.objects.create(uuid=uuid.uuid4(), username="other")
+        self.client.force_authenticate(other, token=gdpr_token(GDPR_QUERY_SCOPE, GDPR_DELETE_SCOPE))
+
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_removes_user_and_keeps_applications(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        response = self.client.delete(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(CustomUser.objects.filter(pk=self.user.pk).exists())
+        self.assertEqual(PreschoolApplication.objects.count(), 3)
+        self.assertTrue(Guardian.objects.filter(ssn=self.guardian_ssn).exists())
+
+    def test_delete_dry_run_keeps_user(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        response = self.client.delete(f"{self.url}?dry_run=true")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def test_delete_requires_delete_scope(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
