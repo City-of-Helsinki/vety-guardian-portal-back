@@ -100,13 +100,23 @@ In the test environment Suomi.fi login goes through the test identification serv
 Its default identity `210281-9988` is not in the VTJ mock, so `/vtj/` endpoints return "person not found" for it.
 
 These identities from DVV's test data (https://testiaineisto.fi/testiaineistorivit/henkilot) are in the VTJ mock
-fixtures (`vtj/testing/mock_server.py`) as one family:
+fixtures (`vtj/testing/mock_server.py`) as two families.
 
-| Role   | Henkilötunnus | Name                                  | Notes                           |
-| ------ | ------------- | ------------------------------------- | ------------------------------- |
-| Mother | `140904A998H` | Joanna Melina Haapakoski Testihenkilo | Guardian of the child           |
-| Father | `060999-951B` | Elias Kumpulainen Testihenkilo        | Guardian of the child           |
-| Child  | `040221A999U` | Veeti Konrad Kauriaistes Testihenkilo | Born 2021-02-04, no Turvakielto |
+Family 1:
+
+| Role   | Henkilötunnus | Name                                  | Notes                                                                    |
+| ------ | ------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| Mother | `140904A998H` | Joanna Melina Haapakoski Testihenkilo | Guardian of the child, lives in Vaasa                                    |
+| Father | `060999-951B` | Elias Kumpulainen Testihenkilo        | Guardian of the child, lives in Helsinki                                 |
+| Child  | `040220A999K` | Veeti Konrad Kauriaistes Testihenkilo | Born 2020-02-04, no Turvakielto. Mock says Helsinki, real test VTJ Laihia |
+
+Family 2:
+
+| Role   | Henkilötunnus | Name                                     | Notes                                                       |
+| ------ | ------------- | ---------------------------------------- | ----------------------------------------------------------- |
+| Mother | `010878-998D` | Maiju Sanna-Kaisa Haapakoski Testihenkilo | Guardian of the child, lives in Järvenpää                   |
+| Father | `181077-999S` | Holger Kullervo Ovaskainen Testihenkilo   | Guardian of the child, lives in Vaasa                       |
+| Child  | `010321A999P` | Onni Manni Haapakoski Testihenkilo        | Born 2021-03-01, no Turvakielto. Mock says Helsinki, real test VTJ Järvenpää |
 
 Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
 and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)

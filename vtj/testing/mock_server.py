@@ -177,7 +177,7 @@ PEOPLE: dict[str, dict] = {
             "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
             "NykyisetEtunimet": {"Etunimet": "Veeti Konrad"},
         },
-        # NOTE: Address was changed here from "LAIHIA" to "HELSINKI". Address in different in DVV test data is "LAIHIA".
+        # NOTE: Address was changed here from "LAIHIA" to "HELSINKI". The address in DVV test data is "LAIHIA".
         # "address": {"LahiosoiteS": "Vallintie 20 E 22", "Postinumero": "66400", "PostitoimipaikkaS": "LAIHIA"},
         "address": {"LahiosoiteS": "Sammatintie 6 L 129", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
         "Huollettava": [],
@@ -193,6 +193,69 @@ PEOPLE: dict[str, dict] = {
                 "Syntymaaika": "19990906",
                 "NykyinenSukunimi": {"Sukunimi": "Kumpulainen Testihenkilo"},
                 "NykyisetEtunimet": {"Etunimet": "Elias"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    # A family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot), kept unchanged
+    # except for the child's address: 181077-999S (father, Vaasa) and 010878-998D (mother, Järvenpää)
+    # are both guardians of 010321A999P (born 2021, Järvenpää in DVV test data, Helsinki in this mock).
+    "181077-999S": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Ovaskainen Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Holger Kullervo"},
+        },
+        "address": {"LahiosoiteS": "Kurteninkatu 13 J 51", "Postinumero": "65100", "PostitoimipaikkaS": "VAASA"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "010321A999P",
+                "Syntymaaika": "20210301",
+                "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Onni Manni"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "010878-998D": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Maiju Sanna-Kaisa"},
+        },
+        "address": {"LahiosoiteS": "Laaksokatu 26 B 10", "Postinumero": "04410", "PostitoimipaikkaS": "JÄRVENPÄÄ"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "010321A999P",
+                "Syntymaaika": "20210301",
+                "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Onni Manni"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "010321A999P": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Onni Manni"},
+        },
+        # NOTE: Address was changed here from "JÄRVENPÄÄ" to "HELSINKI", because vety-data-export-web geocodes the address
+        # and it must be in the Helsinki area. Address in DVV test data is "JÄRVENPÄÄ".
+        # "address": {"LahiosoiteS": "Laaksokatu 26 B 10", "Postinumero": "04410", "PostitoimipaikkaS": "JÄRVENPÄÄ"},
+        "address": {"LahiosoiteS": "Annankatu 27", "Postinumero": "00100", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "181077-999S",
+                "Syntymaaika": "19771018",
+                "NykyinenSukunimi": {"Sukunimi": "Ovaskainen Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Holger Kullervo"},
+            },
+            {
+                "Henkilotunnus": "010878-998D",
+                "Syntymaaika": "19780801",
+                "NykyinenSukunimi": {"Sukunimi": "Haapakoski Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Maiju Sanna-Kaisa"},
             },
         ],
         "Turvakielto": {"TurvakieltoTieto": "0"},
