@@ -32,8 +32,7 @@ body {
 }
 
 h1,
-h2,
-h3 {
+h2 {
   margin: 0;
 }
 
@@ -52,8 +51,14 @@ h2 {
   color: #08060d;
 }
 
+/*
+  The site doesn't reset h3 margins (src/index.css resets only h1, h2 and p), so section titles get the browser
+  default 1em above and below. Without it the space under a title would depend on what follows it: only the
+  markdown texts have padding of their own, so titles followed directly by label/value rows would sit tight.
+*/
 h3 {
   font-size: 12pt;
+  margin: 1em 0;
 }
 
 p {
