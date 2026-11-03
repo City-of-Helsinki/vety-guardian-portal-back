@@ -5,7 +5,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models.application import ApplicationStatus, PreschoolApplication
+from .models.application import ApplicationStatus, HoidonTarve, PreschoolApplication
 
 REQUIRED_MESSAGE = "This field is required."
 
@@ -144,7 +144,9 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
     def _validate_submission(self, data: dict[str, Any]) -> None:
         required = ["kieli", "hakenut_ensisijaisesti_yksityiseen", "taydentava_varhaiskasvatus", "h1_sahkoposti"]
         if data.get("taydentava_varhaiskasvatus"):
-            required += ["taydentava_varhaiskasvatus_aloitus", "hoidon_tarve", "palvelun_tarve", "arkipoissaolot_lkm"]
+            required += ["taydentava_varhaiskasvatus_aloitus", "hoidon_tarve", "palvelun_tarve"]
+            if data.get("hoidon_tarve") != HoidonTarve.VUOROHOITO_VARHAISKASVATUS:
+                required.append("arkipoissaolot_lkm")
 
         errors = {name: [REQUIRED_MESSAGE] for name in required if data.get(name) in (None, "")}
         if errors:
