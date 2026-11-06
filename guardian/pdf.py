@@ -59,7 +59,11 @@ def render_application_html(application: PreschoolApplication, lang: str) -> str
     t = Translator(lang)
 
     # Mirrors the `laajuus` list in Esikatselu.tsx.
-    laajuus = [t(f"vakaOptions.{value}") for value in (application.hoidon_tarve, application.palvelun_tarve) if value]
+    laajuus = (
+        [t(f"vakaOptions.{value}") for value in (application.hoidon_tarve, application.palvelun_tarve) if value]
+        if application.taydentava_varhaiskasvatus
+        else []
+    )
     arkipoissaolot = str(application.arkipoissaolot_lkm) if application.taydentava_varhaiskasvatus and application.arkipoissaolot_lkm is not None else None
 
     context = {

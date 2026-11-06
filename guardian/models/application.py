@@ -19,6 +19,9 @@ class HoidonTarve(models.TextChoices):
 
 
 class PalvelunTarve(models.TextChoices):
+    # Preschool only. Set by the backend when no supplementary early education is needed; not chosen in the form.
+    ESIOPETUS_4H = "esiopetus_4h", "Esiopetus, 4t/pv"
+
     ESIOPETUS_4H_1H_VAKA = "esiopetus_4h_1h_vaka", "Esiop +päiväh, yht 5t/pv"
     ESIOPETUS_4H_1_3H_VAKA = "esiopetus_4h_1_3h_vaka", "Esiop+ päiväh, yht 5-7/pv"
     ESIOPETUS_4H_3_4H_VAKA = "esiopetus_4h_3_4h_vaka", "Esiop +päiväh, yht 7-8/pv"
@@ -44,6 +47,8 @@ class PreschoolApplication(BaseModel):
     # --- Hakemuksen tila ---
     status = models.CharField(max_length=16, choices=ApplicationStatus.choices, default=ApplicationStatus.DRAFT, verbose_name="Tila")
     submitted_at = models.DateTimeField(null=True, blank=True, verbose_name="Lähetetty")
+    # Set when the submitted application has been delivered to hki-vety (see send_applications_to_vety).
+    vety_sent_at = models.DateTimeField(null=True, blank=True, verbose_name="Lähetetty Vetyyn")
 
     # --- Lomake: esiopetukseen / hoitoon liittyvät tiedot ---
     hakenut_ensisijaisesti_yksityiseen = models.BooleanField(

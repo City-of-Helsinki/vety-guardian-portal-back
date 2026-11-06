@@ -8,6 +8,14 @@
   Sizes are scaled down from the site for A4 paper.
 */
 
+/* Same as in src/index.css */
+:root {
+  --color-blue: #0072c6;
+  --color-grey: #6b6375;
+
+  --text-h: #08060d;
+}
+
 @page {
   size: A4;
   margin: 18mm 18mm 20mm;
@@ -15,7 +23,7 @@
   @bottom-right {
     content: counter(page) " / " counter(pages);
     font-size: 8pt;
-    color: #6b6375;
+    color: var(--color-grey);
   }
 }
 
@@ -24,7 +32,7 @@ html {
   font-size: 10pt;
   line-height: 145%;
   letter-spacing: 0.1pt;
-  color: #6b6375;
+  color: var(--color-grey);
 }
 
 body {
@@ -32,8 +40,7 @@ body {
 }
 
 h1,
-h2,
-h3 {
+h2 {
   margin: 0;
 }
 
@@ -41,7 +48,7 @@ h1 {
   font-size: 22pt;
   line-height: 120%;
   margin: 12pt 0;
-  color: #0072c6;
+  color: var(--color-blue);
   font-weight: bold;
 }
 
@@ -49,11 +56,18 @@ h2 {
   font-size: 14pt;
   line-height: 118%;
   font-weight: 500;
-  color: #08060d;
+  color: var(--text-h);
 }
 
+/*
+  Mirrors h3 in src/index.css (20px, line-height 118%, margin 0 0 8px), scaled like h1 and h2.
+  Blue h3s set their colour where they're used (.section-title).
+*/
 h3 {
-  font-size: 12pt;
+  color: var(--color-grey);
+  font-size: 11pt;
+  line-height: 118%;
+  margin: 0 0 5pt;
 }
 
 p {
@@ -75,7 +89,7 @@ a {
 
 .divider {
   width: 100%;
-  background: #0072c6;
+  background: var(--color-blue);
   height: 0.5pt;
   margin-top: 14pt;
   margin-bottom: 14pt;
@@ -91,7 +105,11 @@ a {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  color: #0072c6;
+  color: var(--color-blue);
+}
+
+.section-title > h3 {
+  color: var(--color-blue);
 }
 
 .wrapper {

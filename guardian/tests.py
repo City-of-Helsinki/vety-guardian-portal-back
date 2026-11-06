@@ -1,10 +1,12 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from io import StringIO
 from unittest import mock
 
 import requests
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.core.management import CommandError, call_command
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -97,6 +99,22 @@ class PreschoolApplicationApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
         self.assertEqual(response.data["status"], "submitted")
         self.assertIsNotNone(response.json()["submittedAt"])
+        # No supplementary early education -> preschool only.
+        self.assertEqual(response.json()["palvelunTarve"], "esiopetus_4h")
+
+    def test_submit_with_taydentava_rejects_preschool_only_scope(self):
+        application_id = self.create_draft()
+        body = {
+            **VALID_SUBMISSION,
+            "taydentavaVarhaiskasvatus": True,
+            "taydentavaVarhaiskasvatusAloitus": "2027-08-11",
+            "hoidonTarve": "paivaaikainen_varhaiskasvatus",
+            "palvelunTarve": "esiopetus_4h",
+            "arkipoissaolotLkm": 0,
+        }
+        response = self.client.put(self.detail_url(application_id), body, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("palvelunTarve", response.json())
 
     def test_submitted_application_is_locked(self):
         application_id = self.create_draft()
@@ -370,3 +388,87 @@ class TranslationsTests(SimpleTestCase):
     def test_request_failure(self, _):
         with self.assertRaises(TranslationError):
             Translator("fi")
+
+
+@override_settings(VETY_API_URL="https://vety.example.fi/api/", VETY_API_TOKEN="secret-token")
+class SendApplicationsToVetyTests(TestCase):
+    def create_application(self, **fields) -> PreschoolApplication:
+        defaults = {
+            "status": ApplicationStatus.SUBMITTED,
+            "submitted_at": datetime(2026, 1, 15, 10, 0, tzinfo=UTC),
+            "henkilotunnus": "010120A9998",
+            "nimi": "Lapsi Testi",
+            "syntymavuosi": 2020,
+            "kieli": "fi",
+            "h1_nimi": "Huoltaja Testi",
+            "h1_henkilotunnus": GUARDIAN_SSN,
+        }
+        return PreschoolApplication.objects.create(**{**defaults, **fields})
+
+    def response(self, status_code: int, body: dict | None = None) -> mock.Mock:
+        return mock.Mock(status_code=status_code, json=mock.Mock(return_value=body or {}), text="")
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_sends_unsent_submitted_applications(self, put):
+        put.return_value = self.response(201)
+        application = self.create_application(taydentava_varhaiskasvatus_aloitus=date(2026, 8, 1))
+        self.create_application(status=ApplicationStatus.DRAFT, submitted_at=None)
+        self.create_application(vety_sent_at=datetime(2026, 1, 16, tzinfo=UTC))
+
+        call_command("send_applications_to_vety", stdout=StringIO())
+
+        put.assert_called_once()
+        url, kwargs = put.call_args.args[0], put.call_args.kwargs
+        self.assertEqual(url, f"https://vety.example.fi/api/ilmoittautuneet/{application.pk}")
+        self.assertEqual(kwargs["headers"], {"Authorization": "Token secret-token"})
+        self.assertEqual(kwargs["json"]["status"], "submitted")
+        self.assertEqual(kwargs["json"]["submitted_at"], "2026-01-15T10:00:00+00:00")
+        self.assertEqual(kwargs["json"]["taydentava_varhaiskasvatus_aloitus"], "2026-08-01")
+        self.assertEqual(kwargs["json"]["henkilotunnus"], "010120A9998")
+        self.assertNotIn("h1_yhteystiedot_tallennettu", kwargs["json"])
+        # Unticked checkboxes are sent as False.
+        self.assertIs(kwargs["json"]["erityisen_tuen_tarve"], False)
+        self.assertIs(kwargs["json"]["laakehoidon_tarve"], False)
+        application.refresh_from_db()
+        self.assertIsNotNone(application.vety_sent_at)
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_failed_application_stays_unsent_and_others_are_sent(self, put):
+        failing = self.create_application()
+        ok = self.create_application(submitted_at=datetime(2026, 1, 16, tzinfo=UTC))
+        put.side_effect = [self.response(400, {"viesti": "Lähetetystä ilmoittautumisesta puuttuu: hoidon_tarve"}), self.response(200)]
+
+        stderr = StringIO()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=stderr)
+
+        self.assertIn("puuttuu: hoidon_tarve", stderr.getvalue())
+        failing.refresh_from_db()
+        ok.refresh_from_db()
+        self.assertIsNone(failing.vety_sent_at)
+        self.assertIsNotNone(ok.vety_sent_at)
+
+    @mock.patch("guardian.vety.requests.put", side_effect=requests.ConnectionError("down"))
+    def test_connection_error_leaves_application_unsent(self, put):
+        application = self.create_application()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        application.refresh_from_db()
+        self.assertIsNone(application.vety_sent_at)
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_rejected_token_stops_the_run(self, put):
+        put.return_value = self.response(401)
+        self.create_application()
+        self.create_application()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        put.assert_called_once()
+
+    @override_settings(VETY_API_URL="")
+    @mock.patch("guardian.vety.requests.put")
+    def test_missing_configuration_fails(self, put):
+        self.create_application()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        put.assert_not_called()

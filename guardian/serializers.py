@@ -5,7 +5,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models.application import ApplicationStatus, HoidonTarve, PreschoolApplication
+from .models.application import ApplicationStatus, HoidonTarve, PalvelunTarve, PreschoolApplication
 
 REQUIRED_MESSAGE = "This field is required."
 
@@ -138,6 +138,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             data = {name: getattr(instance, name) for name in self.Meta.fields if name != "current_guardian"} if instance else {}
             data.update(attrs)
             self._validate_submission(data)
+            if not data.get("taydentava_varhaiskasvatus"):
+                attrs["palvelun_tarve"] = PalvelunTarve.ESIOPETUS_4H
 
         return attrs
 
@@ -149,6 +151,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
                 required.append("arkipoissaolot_lkm")
 
         errors = {name: [REQUIRED_MESSAGE] for name in required if data.get(name) in (None, "")}
+        if data.get("taydentava_varhaiskasvatus") and data.get("palvelun_tarve") == PalvelunTarve.ESIOPETUS_4H:
+            errors["palvelun_tarve"] = ["Choose the scope of supplementary early childhood education."]
         if errors:
             raise serializers.ValidationError(errors)
 
