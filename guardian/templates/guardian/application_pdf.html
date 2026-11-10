@@ -35,14 +35,17 @@
       <div class="divider"></div>
     </section>
 
-    <h3 data-testid="title-ilmoittautuminen">{% t "esikatselu.ilmoittautuminenTitle" %}</h3>
-    <div class="markdown-content" data-testid="text-ilmoittautuminen">{% t_markdown "esikatselu.ilmoittautuminenText" %}</div>
-    <div class="divider"></div>
-    <div class="wrapper">
-      {% t "esiopetusAlkaa" as esiopetus_alkaa %}
-      {% label_value "esikatselu.esiopetusAlkaa" esiopetus_alkaa testid="summary-esiopetus-alkaa" %}
-    </div>
-    <div class="divider"></div>
+    <section class="section" data-testid="section-ilmoittautuminen">
+      <div class="section-title"><h3>{% t "esikatselu.ilmoittautuminenTitle" %}</h3></div>
+      <div class="markdown-content" data-testid="text-ilmoittautuminen">{% t_markdown "esikatselu.ilmoittautuminenText" %}</div>
+      <div class="divider"></div>
+    </section>
+
+    <section class="section" data-testid="section-esiopetus-alkaa">
+      <div class="section-title"><h3>{% t "esikatselu.esiopetusAlkaa" %}</h3></div>
+      {% t "esiopetusAlkaa" %}
+      <div class="divider"></div>
+    </section>
 
     <section class="section" data-testid="section-kieli">
       <div class="section-title"><h3>{% t "esikatselu.kieli" %}</h3></div>
