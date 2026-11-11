@@ -100,7 +100,7 @@ In the test environment Suomi.fi login goes through the test identification serv
 Its default identity `210281-9988` is not in the VTJ mock, so `/vtj/` endpoints return "person not found" for it.
 
 These identities from DVV's test data (https://testiaineisto.fi/testiaineistorivit/henkilot) are in the VTJ mock
-fixtures (`vtj/testing/mock_server.py`) as three families.
+fixtures (`vtj/testing/mock_server.py`) as five families.
 
 Family 1:
 
@@ -124,6 +124,21 @@ Family 3 (single parent):
 | ------ | ------------- | --------------------------------- | ----------------------------------------------------------------------- |
 | Mother | `150299-902X` | Tove Maria Snellman Testihenkilo  | Only guardian of the child, lives in Varkaus                            |
 | Child  | `151021A998B` | Ulrika Maria Snellman Testihenkilo | Born 2021-10-15, no Turvakielto. Mock says Helsinki, real test VTJ Varkaus |
+
+Family 4 (Turvakielto):
+
+| Role   | Henkilötunnus | Name                                 | Notes                                                                    |
+| ------ | ------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| Mother | `200798-9981` | Mette Salviantes Testihenkilo        | Guardian of the child, **active Turvakielto**, no address in VTJ         |
+| Father | `111297-9991` | Karrisamuli Kauriaistes Testihenkilo | Guardian of the child, lives in Vantaa                                   |
+| Child  | `100120A9502` | Lise Salviantes Testihenkilo         | Born 2020-01-10, no Turvakielto. Mock says Helsinki, real test VTJ Vantaa |
+
+Family 5 (child with Turvakielto, single parent):
+
+| Role   | Henkilötunnus | Name                                     | Notes                                                        |
+| ------ | ------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| Mother | `010503A9503` | Marina Irina Larisa Testmän Testihenkilo | Only guardian of the child, lives in Helsinki                |
+| Child  | `011019A9519` | Jimi Jonathan Testmän Testihenkilo       | Born 2019-10-01, **active Turvakielto**, no address in VTJ   |
 
 Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
 and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)

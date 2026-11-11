@@ -300,6 +300,107 @@ PEOPLE: dict[str, dict] = {
         ],
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
+    # A family with an active Turvakielto from DVV's public test data
+    # (https://testiaineisto.fi/testiaineistorivit/henkilot), kept unchanged except for the child's address:
+    # 200798-9981 (mother, Turvakielto, no address) and 111297-9991 (father, Vantaa) are both guardians of
+    # 100120A9502 (born 2020, Vantaa in DVV test data, Helsinki in this mock).
+    "200798-9981": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Mette"},
+        },
+        # No "address" key: the mother has an active Turvakielto, so DVV test data has no address for her.
+        "Huollettava": [
+            {
+                "Henkilotunnus": "100120A9502",
+                "Syntymaaika": "20200110",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Lise"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "1"},
+    },
+    "111297-9991": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Karrisamuli"},
+        },
+        "address": {"LahiosoiteS": "Orvokkitie 30 B 7", "Postinumero": "01300", "PostitoimipaikkaS": "VANTAA"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "100120A9502",
+                "Syntymaaika": "20200110",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Lise"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "100120A9502": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Lise"},
+        },
+        # NOTE: Address was changed here from "VANTAA" to "HELSINKI", because vety-data-export-web geocodes the address
+        # and it must be in the Helsinki area. Address in DVV test data is "VANTAA".
+        # "address": {"LahiosoiteS": "Orvokkitie 30 A 9", "Postinumero": "01300", "PostitoimipaikkaS": "VANTAA"},
+        "address": {"LahiosoiteS": "Fredrikinkatu 20", "Postinumero": "00120", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "200798-9981",
+                "Syntymaaika": "19980720",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Mette"},
+            },
+            {
+                "Henkilotunnus": "111297-9991",
+                "Syntymaaika": "19971211",
+                "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Karrisamuli"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    # A single-parent family where the CHILD has an active Turvakielto, from DVV's public test data
+    # (https://testiaineisto.fi/testiaineistorivit/henkilot), kept unchanged: 010503A9503 (mother, Helsinki) is the
+    # only guardian of 011019A9519 (born 2019, Turvakielto, no address).
+    "010503A9503": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Marina Irina Larisa"},
+        },
+        "address": {"LahiosoiteS": "Sammatintie 6 M 136", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "011019A9519",
+                "Syntymaaika": "20191001",
+                "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Jimi Jonathan"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "011019A9519": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Jimi Jonathan"},
+        },
+        # No "address" key: the child has an active Turvakielto, so DVV test data has no address for him.
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "010503A9503",
+                "Syntymaaika": "20030501",
+                "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Marina Irina Larisa"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "1"},
+    },
 }
 
 
