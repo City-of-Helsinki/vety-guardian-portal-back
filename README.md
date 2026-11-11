@@ -100,7 +100,7 @@ In the test environment Suomi.fi login goes through the test identification serv
 Its default identity `210281-9988` is not in the VTJ mock, so `/vtj/` endpoints return "person not found" for it.
 
 These identities from DVV's test data (https://testiaineisto.fi/testiaineistorivit/henkilot) are in the VTJ mock
-fixtures (`vtj/testing/mock_server.py`) as two families.
+fixtures (`vtj/testing/mock_server.py`) as three families.
 
 Family 1:
 
@@ -117,6 +117,13 @@ Family 2:
 | Mother | `010878-998D` | Maiju Sanna-Kaisa Haapakoski Testihenkilo | Guardian of the child, lives in Järvenpää                   |
 | Father | `181077-999S` | Holger Kullervo Ovaskainen Testihenkilo   | Guardian of the child, lives in Vaasa                       |
 | Child  | `010321A999P` | Onni Manni Haapakoski Testihenkilo        | Born 2021-03-01, no Turvakielto. Mock says Helsinki, real test VTJ Järvenpää |
+
+Family 3 (single parent):
+
+| Role   | Henkilötunnus | Name                              | Notes                                                                   |
+| ------ | ------------- | --------------------------------- | ----------------------------------------------------------------------- |
+| Mother | `150299-902X` | Tove Maria Snellman Testihenkilo  | Only guardian of the child, lives in Varkaus                            |
+| Child  | `151021A998B` | Ulrika Maria Snellman Testihenkilo | Born 2021-10-15, no Turvakielto. Mock says Helsinki, real test VTJ Varkaus |
 
 Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
 and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)
