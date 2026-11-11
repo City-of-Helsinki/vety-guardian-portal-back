@@ -260,6 +260,46 @@ PEOPLE: dict[str, dict] = {
         ],
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
+    # A single-parent family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot), kept
+    # unchanged except for the child's address: 150299-902X (mother, Varkaus) is the only guardian of 151021A998B
+    # (born 2021, Varkaus in DVV test data, Helsinki in this mock).
+    "150299-902X": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Tove Maria"},
+        },
+        "address": {"LahiosoiteS": "Haukankuja 1 G 28", "Postinumero": "78850", "PostitoimipaikkaS": "VARKAUS"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "151021A998B",
+                "Syntymaaika": "20211015",
+                "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Ulrika Maria"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "151021A998B": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Ulrika Maria"},
+        },
+        # NOTE: Address was changed here from "VARKAUS" to "HELSINKI", because vety-data-export-web geocodes the address
+        # and it must be in the Helsinki area. Address in DVV test data is "VARKAUS".
+        # "address": {"LahiosoiteS": "Haukankuja 1 G 28", "Postinumero": "78850", "PostitoimipaikkaS": "VARKAUS"},
+        "address": {"LahiosoiteS": "Lönnrotinkatu 5", "Postinumero": "00120", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "150299-902X",
+                "Syntymaaika": "19990215",
+                "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Tove Maria"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
 }
 
 
