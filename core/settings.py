@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 
 import environ
+import sentry_sdk
+from corsheaders.defaults import default_headers
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -41,6 +43,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])  # pyright: ignore
 # Cross-Origin Resource Sharing (django-cors-headers / corsheaders) settings
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])  # pyright: ignore
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = (*default_headers, "sentry-trace", "baggage")
 # Django's own CSRF protection for cross-origin POSTs. Separate from the CORS_ALLOWED_ORIGINS above.
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])  # pyright: ignore
 
@@ -270,6 +273,22 @@ VETY_API_TIMEOUT = env.int("VETY_API_TIMEOUT", default=10)
 TEST_DATA_API_ENABLED = env.bool("TEST_DATA_API_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 # Shared secret the tests send in the X-Test-Data-Api-Key header. All requests are refused while it's empty.
 TEST_DATA_API_KEY = env.str("TEST_DATA_API_KEY", default="")  # pyright: ignore
+
+
+# Sentry error monitoring. Leave SENTRY_DSN empty to disable it.
+SENTRY_DSN = env.str("SENTRY_DSN", default="")  # pyright: ignore
+SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="local")  # pyright: ignore
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0)  # pyright: ignore
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+        max_request_body_size="never",
+        include_local_variables=False,
+    )
 
 
 # Logging configuration
