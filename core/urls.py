@@ -23,7 +23,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from core.views import healthz, readiness
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     # Root responds 200 so the CD status code check passes
     path("", healthz, name="root"),
     # OpenShift probes
@@ -44,6 +43,10 @@ urlpatterns = [
     # Helsinki-profiili GDPR API
     path("gdpr-api/", include("helsinki_gdpr.urls")),
 ]
+
+# Development and testing only, see ADMIN_ENABLED in settings.py
+if settings.ADMIN_ENABLED:
+    urlpatterns.append(path("admin/", admin.site.urls))
 
 if settings.VTJ_MOCK_ENABLED:
     from vtj.testing.views import henkilon_tunnuskysely

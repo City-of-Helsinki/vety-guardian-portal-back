@@ -266,6 +266,11 @@ VETY_API_TOKEN = env("VETY_API_TOKEN", default="")  # type: ignore[reportArgumen
 VETY_API_TIMEOUT = env.int("VETY_API_TIMEOUT", default=10)
 
 
+# Django admin at /admin/. Only for development and testing, never enable in staging or production:
+# reads of personal data in the admin are not audit logged.
+ADMIN_ENABLED = env.bool("ADMIN_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
+
+
 # Test-data cleanup API for e2e tests at /test-data/ (see guardian/testing/views.py). Never enable in production.
 TEST_DATA_API_ENABLED = env.bool("TEST_DATA_API_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
 # Shared secret the tests send in the X-Test-Data-Api-Key header. All requests are refused while it's empty.
