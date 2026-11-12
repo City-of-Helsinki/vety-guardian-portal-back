@@ -52,6 +52,8 @@ extends:
       DEBUG: "0"
       APPLY_MIGRATIONS: "1"
       VTJ_HEL_TIMEOUT: "10"
+      # Django admin at /admin/: development and testing only
+      ADMIN_ENABLED: "1"
       VETY_LOG_LEVEL: "DEBUG"
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
