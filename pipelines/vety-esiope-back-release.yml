@@ -65,11 +65,14 @@ extends:
       DJANGO_LOG_LEVEL: "WARNING"
       ROOT_LOG_LEVEL: "WARNING"
 
+      VTJ_MOCK_ENABLED: "1"
+      VTJ_HEL_ENDPOINT: "http://localhost:8080/vtj-mock/api/HenkilonTunnuskysely"
+
       ALLOWED_HOSTS: "vety-esiope-back.staging-se.hel.ninja,localhost"
       CORS_ALLOWED_ORIGINS: "https://vety-esiope-front.staging-se.hel.ninja"
       CSRF_TRUSTED_ORIGINS: "https://vety-esiope-front.staging-se.hel.ninja"
       TOKEN_AUTH_ISSUER: "https://tunnistus.stage.hel.ninja/auth/realms/helsinki-tunnistus"
-      TOKEN_AUTH_AUDIENCE: "vety-api-dev"
+      TOKEN_AUTH_AUDIENCE: "vety-api-stage"
       HELSINKI_PROFILE_API_URL: "https://api.hel.fi/profiili-stage/graphql/"
       HELSINKI_PROFILE_API_AUDIENCE: "profile-api-stage"
       HELSINKI_PROFILE_API_TIMEOUT: "10"
