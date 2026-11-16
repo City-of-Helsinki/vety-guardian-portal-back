@@ -328,7 +328,8 @@ LOGGING = {
     },
     "formatters": {
         "json": {
-            "()": "logger_extra.formatter.JSONFormatter",
+            # logger_extra's JSONFormatter that doesn't fail on values it can't serialize, see core/log_formatter.py
+            "()": "core.log_formatter.JSONFormatter",
         },
         "text": {
             "format": "{levelname} {asctime} [{name}] [{request_id}] {message}",

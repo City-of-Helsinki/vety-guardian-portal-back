@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import logging.config
+import socket
 import uuid
 
 from django.conf import settings
@@ -97,6 +98,16 @@ class LoggingTests(SimpleTestCase):
         lines = self.lines(stream)
         self.assertEqual(len(lines), 1)
         self.assertIn("ValueError: boom", json.loads(lines[0])["context"]["exc_info"])
+
+    def test_json_unserializable_extra_does_not_drop_the_line(self):
+        """runserver passes the client socket as extra["request"]; getpeername() fails once the client is gone."""
+        stream = self.configure_logging("json")
+        with socket.socket() as unconnected:
+            logging.getLogger("django.server").warning('"%s" %s %s', "GET /vtj/dependants/ HTTP/1.1", "200", "287", extra={"request": unconnected})
+
+        record = json.loads(self.lines(stream)[-1])
+        self.assertEqual(record["message"], '"GET /vtj/dependants/ HTTP/1.1" 200 287')
+        self.assertEqual(record["context"]["request"], "<socket>")
 
     def test_text_line_has_logger_name_and_request_id(self):
         stream = self.configure_logging("text")
