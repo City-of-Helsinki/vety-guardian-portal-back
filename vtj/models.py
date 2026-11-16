@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from guardian.models.application import PreschoolApplication
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 # Soft format check only - a Finnish "henkilotunnus" is DDMMYY + century
 # sign + 3-digit individual number + 1 check character. This does NOT

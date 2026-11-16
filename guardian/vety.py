@@ -16,7 +16,7 @@ from django.conf import settings
 
 from .models.application import PreschoolApplication
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 # The fields hki-vety's IlmoittautuneetLapsetSyoteSerializer accepts. They have the same names here.
 ENROLLMENT_FIELDS = [

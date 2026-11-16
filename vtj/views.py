@@ -30,7 +30,7 @@ from .serializers import (
 )
 from .sync import sync_family
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 
 def _guardian_ssn(request: Request) -> str:

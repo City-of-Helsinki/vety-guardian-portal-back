@@ -19,7 +19,7 @@ from django.conf import settings
 from helusers.jwt import JWT, ValidationError
 from helusers.oidc import get_keys
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 MY_PROFILE_QUERY = """
 query {

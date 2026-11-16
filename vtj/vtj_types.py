@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 
 def parse_vtj_date(value: str | None) -> datetime.date | None:

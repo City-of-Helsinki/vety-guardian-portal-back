@@ -57,6 +57,7 @@ extends:
       VETY_LOG_LEVEL: "DEBUG"
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
+      LOG_FORMAT: "json"
       # Environment specific, fill in actual values:
       # ALLOWED_HOSTS: ""
       # CORS_ALLOWED_ORIGINS: ""

@@ -10,4 +10,4 @@ class VtjConfig(AppConfig):
 
     def ready(self) -> None:
         if settings.VTJ_MOCK_ENABLED:
-            logging.getLogger("vety-guardian-portal-back").warning("VTJ_MOCK_ENABLED is on: serving mock VTJ data at /vtj-mock/api/HenkilonTunnuskysely")
+            logging.getLogger(__name__).warning("VTJ_MOCK_ENABLED is on: serving mock VTJ data at /vtj-mock/api/HenkilonTunnuskysely")

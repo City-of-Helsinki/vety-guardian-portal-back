@@ -14,7 +14,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 # Keep in sync with SUPPORTED_LANGUAGES in vety-guardian-portal-front/src/i18n/i18n.ts
 SUPPORTED_LANGUAGES = ("fi", "sv", "en")

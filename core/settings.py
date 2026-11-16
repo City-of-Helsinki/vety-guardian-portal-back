@@ -65,9 +65,12 @@ INSTALLED_APPS = [
     "guardian",
     "vtj",
     "helsinki_gdpr",
+    "logger_extra",
 ]
 
 MIDDLEWARE = [
+    # First, so that everything logged during the request carries its request_id (see LOGGING).
+    "logger_extra.middleware.XRequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # as high as possible, before CommonMiddleware
@@ -297,37 +300,58 @@ if SENTRY_DSN:
 
 
 # Logging configuration
-# https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/#logging
-# https://docs.djangoproject.com/en/5.1/topics/logging/
+# https://docs.djangoproject.com/en/6.1/topics/logging/
+# https://github.com/City-of-Helsinki/django-logger-extra
+#
+# Everything is written to the container's stderr, which Platta collects (OpenShift Loki, Azure Log Analytics).
+# LOG_FORMAT "json" (default, used in Platta): one JSON object per line with message, level, name (module), time and
+# context (request_id, extras, exc_info). "text": the same information on one readable line, for local development.
+# XRequestIdMiddleware takes request_id from the X-Request-ID header (set by Platta from the Application Gateway
+# trace id) or generates one. Django's own "Bad Request"/"Forbidden" lines are logged after the middleware has
+# finished, so they don't have it.
+
+LOG_FORMAT = env.str("LOG_FORMAT", default="json")  # pyright: ignore[reportUnknownVariableType]
+if LOG_FORMAT not in ("json", "text"):
+    raise ValueError(f'LOG_FORMAT must be "json" or "text", not {LOG_FORMAT!r}')
+
+# This project's apps; their loggers are named by module (logging.getLogger(__name__)).
+_APP_LOGGERS = ("authentication", "core", "guardian", "vtj")
 
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} [{name}] {message}",
-            "style": "{",
+    "filters": {
+        # Adds the logger_context() values (request_id) to every record.
+        "context": {
+            "()": "logger_extra.filter.LoggerContextFilter",
         },
-        "simple": {
-            "format": "{levelname} {asctime} {message}",
+    },
+    "formatters": {
+        "json": {
+            "()": "logger_extra.formatter.JSONFormatter",
+        },
+        "text": {
+            "format": "{levelname} {asctime} [{name}] [{request_id}] {message}",
             "style": "{",
+            # Records logged outside a request have no request_id.
+            "defaults": {"request_id": "-"},
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-        "console_simple": {
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": LOG_FORMAT,
+            "filters": ["context"],
         },
     },
     "loggers": {
-        "vety-guardian-portal-back": {
-            "handlers": ["console_simple"],
-            "level": env("VETY_LOG_LEVEL", default="INFO"),  # type: ignore[reportArgumentType]
-            "propagate": False,
+        **{
+            name: {
+                "handlers": ["console"],
+                "level": env("VETY_LOG_LEVEL", default="INFO"),  # type: ignore[reportArgumentType]
+                "propagate": False,
+            }
+            for name in _APP_LOGGERS
         },
         "django": {
             "handlers": ["console"],
