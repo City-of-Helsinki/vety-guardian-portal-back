@@ -76,6 +76,8 @@ extends:
       HELSINKI_PROFILE_API_URL: "https://api.hel.fi/profiili-stage/graphql/"
       HELSINKI_PROFILE_API_AUDIENCE: "profile-api-stage"
       HELSINKI_PROFILE_API_TIMEOUT: "10"
+      VETY_API_URL: "https://testi.vaso.hel.fi/api"
+      VETY_API_TIMEOUT: "10"
       LOCIZE_PROJECT_ID: "8d851889-2950-437b-80e8-b4ef26317ff9"
     ## Production definitions
     ## Production is using staging image
