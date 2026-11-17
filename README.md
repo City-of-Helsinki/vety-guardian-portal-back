@@ -100,7 +100,7 @@ In the test environment Suomi.fi login goes through the test identification serv
 Its default identity `210281-9988` is not in the VTJ mock, so `/vtj/` endpoints return "person not found" for it.
 
 These identities from DVV's test data (https://testiaineisto.fi/testiaineistorivit/henkilot) are in the VTJ mock
-fixtures (`vtj/testing/mock_server.py`) as five families.
+fixtures (`vtj/testing/mock_server.py`) as five families, plus one mock-only family.
 
 Family 1:
 
@@ -140,8 +140,55 @@ Family 5 (child with Turvakielto, single parent):
 | Mother | `010503A9503` | Marina Irina Larisa Testmän Testihenkilo | Only guardian of the child, lives in Helsinki                |
 | Child  | `011019A9519` | Jimi Jonathan Testmän Testihenkilo       | Born 2019-10-01, **active Turvakielto**, no address in VTJ   |
 
+Family 6 (single parent, mock only):
+
+| Role     | Henkilötunnus | Name               | Notes                                          |
+| -------- | ------------- | ------------------ | ---------------------------------------------- |
+| Guardian | `290150-998L` | Siru Menninkäinen  | Only guardian of the child, lives in Helsinki  |
+| Child    | `220421ATP00` | Miska Menninkäinen | Born 2021-04-22, no Turvakielto                |
+
 Log in as the mother or the father. On the first login with a new identity, Helsinki-profiili asks for an email address
 and sends a confirmation code to it, so use a mailbox you can read. (https://temporarymail.com/)
+
+### Edlevo test families (login aliases)
+
+The VTJ mock also has Edlevo's test families. Their henkilötunnus values (e.g. `011190-TP01`) are not real Suomi.fi
+test identities, so they can't be used to log in. Instead, log in with the login henkilötunnus below: when
+`VTJ_MOCK_ENABLED` is on, `POST /auth/identity/` stores the family henkilötunnus on the user instead
+(`LOGIN_SSN_ALIASES` in `vtj/testing/mock_server.py`). The VTJ sync and the applications then use the family
+henkilötunnus, e.g. as `h1_henkilotunnus`. Aliases are ignored when the mock is off.
+
+All families have no Turvakielto, every guardian is a guardian of the child, and everyone lives in Helsinki.
+
+| Family | Role     | Login henkilötunnus | Family henkilötunnus | Name                          | Notes                                         |
+| ------ | -------- | ------------------- | -------------------- | ----------------------------- | --------------------------------------------- |
+| 1      | Guardian | `200760-9998`       | `011190-TP01`        | Tiina Testaaja                |                                               |
+| 1      | Guardian | `240582-9477`       | `291190-TP10`        | Teuvo Testaaja                |                                               |
+| 1      | Child    |                     | `291221ATP00`        | Tirppa Testaaja               | Born 2021-12-29                               |
+| 2      | Guardian | `250582-965E`       | `110602ATP10`        | Kimmo Koodari                 | Lives with the child                          |
+| 2      | Guardian | `260582-957U`       | `050398-TP00`        | Kaarina Kehittäjä             | Lives at a different address                  |
+| 2      | Child    |                     | `121021ATP00`        | Kaisa Koodari                 | Born 2021-10-12                               |
+| 3      | Guardian | `110180-990F`       | `201087-TP00`        | Anniina Admin                 | Single parent                                 |
+| 3      | Child    |                     | `290921ATP10`        | Arttu Admin                   | Born 2021-09-29                               |
+| 4      | Guardian | `050282-9687`       | `220796-TP00`        | Saana Serveri                 | Single parent                                 |
+| 4      | Child    |                     | `240721ATP10`        | Sami Serveri                  | Born 2021-07-24                               |
+| 5      | Guardian | `020280-968S`       | `290784-TP00`        | Jane Doe                      | Single parent                                 |
+| 5      | Child    |                     | `080221ATP11`        | John Doe                      | Born 2021-02-08                               |
+| 6      | Guardian | `090999-971X`       | `220889-TP10`        | Jussi-Pekka O´Connor-Virtanen | Special characters in the name                |
+| 6      | Guardian | `010180-9580`       | `171099-TP00`        | Mamma Virtanen                |                                               |
+| 6      | Child    |                     | `251121ATP00`        | Anna-Leena O´Connor           | Born 2021-11-25                               |
+| 7      | Guardian | `090999-969V`       | `171099-TP01`        | Bertta Bitti                  |                                               |
+| 7      | Guardian | `221275-966C`       | `300992-TP00`        | Barbara Bitti                 |                                               |
+| 7      | Child    |                     | `170921ATP10`        | Bob Bitti                     | Born 2021-09-17                               |
+| 8      | Guardian | `010180-942F`       | `180996-TP00`        | Sini Selain                   |                                               |
+| 8      | Guardian | `221275-939H`       | `150596-TP11`        | Seppo Selain                  |                                               |
+| 8      | Child    |                     | `210521ATP11`        | Santeri Onni Oliver Selain    | Born 2021-05-21, several first names          |
+| 9      | Guardian | `170377-9585`       | `190486-TP00`        | Nelli Nolla                   |                                               |
+| 9      | Guardian | `260455-999D`       | `060988-TP10`        | Niilo Nolla                   |                                               |
+| 9      | Child    |                     | `140921ATP10`        | Nina Nolla                    | Born 2021-09-14                               |
+
+The family henkilötunnus values don't pass the `Guardian`/`Dependant` henkilötunnus format validator, so editing these
+records in the Django admin fails validation. The VTJ sync and the applications are not affected.
 
 ### Run VTJ mock server for development environment
 

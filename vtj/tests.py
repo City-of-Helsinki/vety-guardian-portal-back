@@ -34,6 +34,17 @@ class MockHandleRequestTests(SimpleTestCase):
         self.assertEqual(status, 200)
         self.assertEqual(len(data["VTJHenkiloVastaussanoma"]["Henkilo"]["Huollettava"]), 2)
 
+    def test_codemen_family(self):
+        _, data = handle_request(PATH, _body("291221ATP00", "HUOLLETTAVA-HUOLTAJAT"))
+        guardians = data["VTJHenkiloVastaussanoma"]["Henkilo"]["Huoltaja"]
+        self.assertEqual([g["Henkilotunnus"] for g in guardians], ["011190-TP01", "291190-TP10"])
+        self.assertEqual(guardians[0]["Syntymaaika"], "19901101")
+
+        _, data = handle_request(PATH, _body("011190-TP01", "HUOLTAJA-HUOLLETTAVAT"))
+        dependants = data["VTJHenkiloVastaussanoma"]["Henkilo"]["Huollettava"]
+        self.assertEqual([d["Henkilotunnus"] for d in dependants], ["291221ATP00"])
+        self.assertEqual(dependants[0]["Syntymaaika"], "20211229")
+
     def test_guardians_missing_from_fixture_returns_empty_list(self):
         status, data = handle_request(PATH, _body("010101-0101", "HUOLLETTAVA-HUOLTAJAT"))
         self.assertEqual(status, 200)

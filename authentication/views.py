@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from vtj.serializers import ErrorResponseSerializer
+from vtj.testing.mock_server import LOGIN_SSN_ALIASES
 
 from .models import CustomUser
 from .profile import ProfileError, get_verified_personal_information, validate_profile_token
@@ -55,8 +57,12 @@ class IdentityView(APIView):
             return Response({"error": "Strong authentication (Suomi.fi) required"}, status=status.HTTP_403_FORBIDDEN)
 
         profile_id = uuid.UUID(info.profile_id)
-        if user.national_identification_number != info.national_identification_number or user.helsinki_profile_id != profile_id:
-            user.national_identification_number = info.national_identification_number
+        ssn = info.national_identification_number
+        if settings.VTJ_MOCK_ENABLED:
+            # Test ssns that can't log in are reached by logging in with an alias.
+            ssn = LOGIN_SSN_ALIASES.get(ssn, ssn)
+        if user.national_identification_number != ssn or user.helsinki_profile_id != profile_id:
+            user.national_identification_number = ssn
             user.helsinki_profile_id = profile_id
             user.save(update_fields=["national_identification_number", "helsinki_profile_id"])
 
