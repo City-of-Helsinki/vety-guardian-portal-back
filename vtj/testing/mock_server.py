@@ -260,6 +260,297 @@ PEOPLE: dict[str, dict] = {
         ],
         "Turvakielto": {"TurvakieltoTieto": "0"},
     },
+    # A single-parent family from DVV's public test data (https://testiaineisto.fi/testiaineistorivit/henkilot), kept
+    # unchanged except for the child's address: 150299-902X (mother, Varkaus) is the only guardian of 151021A998B
+    # (born 2021, Varkaus in DVV test data, Helsinki in this mock).
+    "150299-902X": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Tove Maria"},
+        },
+        "address": {"LahiosoiteS": "Haukankuja 1 G 28", "Postinumero": "78850", "PostitoimipaikkaS": "VARKAUS"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "151021A998B",
+                "Syntymaaika": "20211015",
+                "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Ulrika Maria"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "151021A998B": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Ulrika Maria"},
+        },
+        # NOTE: Address was changed here from "VARKAUS" to "HELSINKI", because vety-data-export-web geocodes the address
+        # and it must be in the Helsinki area. Address in DVV test data is "VARKAUS".
+        # "address": {"LahiosoiteS": "Haukankuja 1 G 28", "Postinumero": "78850", "PostitoimipaikkaS": "VARKAUS"},
+        "address": {"LahiosoiteS": "Lönnrotinkatu 5", "Postinumero": "00120", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "150299-902X",
+                "Syntymaaika": "19990215",
+                "NykyinenSukunimi": {"Sukunimi": "Snellman Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Tove Maria"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    # A family with an active Turvakielto from DVV's public test data
+    # (https://testiaineisto.fi/testiaineistorivit/henkilot), kept unchanged except for the child's address:
+    # 200798-9981 (mother, Turvakielto, no address) and 111297-9991 (father, Vantaa) are both guardians of
+    # 100120A9502 (born 2020, Vantaa in DVV test data, Helsinki in this mock).
+    "200798-9981": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Mette"},
+        },
+        # No "address" key: the mother has an active Turvakielto, so DVV test data has no address for her.
+        "Huollettava": [
+            {
+                "Henkilotunnus": "100120A9502",
+                "Syntymaaika": "20200110",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Lise"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "1"},
+    },
+    "111297-9991": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Karrisamuli"},
+        },
+        "address": {"LahiosoiteS": "Orvokkitie 30 B 7", "Postinumero": "01300", "PostitoimipaikkaS": "VANTAA"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "100120A9502",
+                "Syntymaaika": "20200110",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Lise"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "100120A9502": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Lise"},
+        },
+        # NOTE: Address was changed here from "VANTAA" to "HELSINKI", because vety-data-export-web geocodes the address
+        # and it must be in the Helsinki area. Address in DVV test data is "VANTAA".
+        # "address": {"LahiosoiteS": "Orvokkitie 30 A 9", "Postinumero": "01300", "PostitoimipaikkaS": "VANTAA"},
+        "address": {"LahiosoiteS": "Fredrikinkatu 20", "Postinumero": "00120", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "200798-9981",
+                "Syntymaaika": "19980720",
+                "NykyinenSukunimi": {"Sukunimi": "Salviantes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Mette"},
+            },
+            {
+                "Henkilotunnus": "111297-9991",
+                "Syntymaaika": "19971211",
+                "NykyinenSukunimi": {"Sukunimi": "Kauriaistes Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Karrisamuli"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    # A single-parent family where the CHILD has an active Turvakielto, from DVV's public test data
+    # (https://testiaineisto.fi/testiaineistorivit/henkilot), kept unchanged: 010503A9503 (mother, Helsinki) is the
+    # only guardian of 011019A9519 (born 2019, Turvakielto, no address).
+    "010503A9503": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Marina Irina Larisa"},
+        },
+        "address": {"LahiosoiteS": "Sammatintie 6 M 136", "Postinumero": "00550", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "011019A9519",
+                "Syntymaaika": "20191001",
+                "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Jimi Jonathan"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "011019A9519": {
+        "name": {
+            "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+            "NykyisetEtunimet": {"Etunimet": "Jimi Jonathan"},
+        },
+        # No "address" key: the child has an active Turvakielto, so DVV test data has no address for him.
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "010503A9503",
+                "Syntymaaika": "20030501",
+                "NykyinenSukunimi": {"Sukunimi": "Testmän Testihenkilo"},
+                "NykyisetEtunimet": {"Etunimet": "Marina Irina Larisa"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "1"},
+    },
+    # A single guardian 290150-998L (a DVV test ssn, can log in directly) with one dependant 220421ATP00.
+    "290150-998L": {
+        "name": {"NykyinenSukunimi": {"Sukunimi": "Menninkäinen"}, "NykyisetEtunimet": {"Etunimet": "Siru"}},
+        "address": {"LahiosoiteS": "Metsätie 8", "Postinumero": "00810", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [
+            {
+                "Henkilotunnus": "220421ATP00",
+                "Syntymaaika": "20210422",
+                "NykyinenSukunimi": {"Sukunimi": "Menninkäinen"},
+                "NykyisetEtunimet": {"Etunimet": "Miska"},
+            },
+        ],
+        "Huoltaja": [],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+    "220421ATP00": {
+        "name": {"NykyinenSukunimi": {"Sukunimi": "Menninkäinen"}, "NykyisetEtunimet": {"Etunimet": "Miska"}},
+        "address": {"LahiosoiteS": "Metsätie 8", "Postinumero": "00810", "PostitoimipaikkaS": "HELSINKI"},
+        "Huollettava": [],
+        "Huoltaja": [
+            {
+                "Henkilotunnus": "290150-998L",
+                "Syntymaaika": "19500129",
+                "NykyinenSukunimi": {"Sukunimi": "Menninkäinen"},
+                "NykyisetEtunimet": {"Etunimet": "Siru"},
+            },
+        ],
+        "Turvakielto": {"TurvakieltoTieto": "0"},
+    },
+}
+
+
+def _address(street: str, postal_code: str = "") -> dict:
+    return {"LahiosoiteS": street, "Postinumero": postal_code, "PostitoimipaikkaS": "HELSINKI"}
+
+
+def _birth_date(ssn: str) -> str:
+    """YYYYMMDD from a henkilotunnus's DDMMYY + century sign."""
+    century = {"+": "18", "-": "19", "A": "20"}.get(ssn[6], "19")
+    return f"{century}{ssn[4:6]}{ssn[2:4]}{ssn[0:2]}"
+
+
+def _add_family(guardians: list[tuple[str, str, str, dict]], children: list[tuple[str, str, str, dict]]) -> None:
+    """
+    Adds a family to PEOPLE: every guardian is a guardian of every child.
+    Each person is (ssn, last_name, first_names, address).
+    """
+
+    def row(person: tuple[str, str, str, dict]) -> dict:
+        ssn, last_name, first_names, _address = person
+        return {
+            "Henkilotunnus": ssn,
+            "Syntymaaika": _birth_date(ssn),
+            "NykyinenSukunimi": {"Sukunimi": last_name},
+            "NykyisetEtunimet": {"Etunimet": first_names},
+        }
+
+    def entry(person: tuple[str, str, str, dict], huollettava: list[dict], huoltaja: list[dict]) -> dict:
+        _ssn, last_name, first_names, address = person
+        return {
+            "name": {"NykyinenSukunimi": {"Sukunimi": last_name}, "NykyisetEtunimet": {"Etunimet": first_names}},
+            "address": address,
+            "Huollettava": huollettava,
+            "Huoltaja": huoltaja,
+            "Turvakielto": {"TurvakieltoTieto": "0"},
+        }
+
+    for guardian in guardians:
+        PEOPLE[guardian[0]] = entry(guardian, [row(child) for child in children], [])
+    for child in children:
+        PEOPLE[child[0]] = entry(child, [], [row(guardian) for guardian in guardians])
+
+
+# Edlevo test families. These ssns can't be used to
+# log in - log in with an ssn in LOGIN_SSN_ALIASES below instead.
+_add_family(
+    guardians=[
+        ("011190-TP01", "Testaaja", "Tiina", _address("Yliskyläntie 14", "00840")),
+        ("291190-TP10", "Testaaja", "Teuvo", _address("Yliskyläntie 14", "00840")),
+    ],
+    children=[("291221ATP00", "Testaaja", "Tirppa", _address("Yliskyläntie 14", "00840"))],
+)
+_add_family(
+    # The guardians live apart; the child lives with Kimmo.
+    guardians=[
+        ("110602ATP10", "Koodari", "Kimmo", _address("Kanavamäki 2", "00840")),
+        ("050398-TP00", "Kehittäjä", "Kaarina", _address("Yliskylän puistokatu 3", "00840")),
+    ],
+    children=[("121021ATP00", "Koodari", "Kaisa", _address("Kanavamäki 2", "00840"))],
+)
+_add_family(
+    guardians=[("201087-TP00", "Admin", "Anniina", _address("Gunillantie 5"))],
+    children=[("290921ATP10", "Admin", "Arttu", _address("Gunillantie 5"))],
+)
+_add_family(
+    guardians=[("220796-TP00", "Serveri", "Saana", _address("Ilomäentie 14"))],
+    children=[("240721ATP10", "Serveri", "Sami", _address("Ilomäentie 14"))],
+)
+_add_family(
+    guardians=[("290784-TP00", "Doe", "Jane", _address("Roihuvuorentie 24", "00820"))],
+    children=[("080221ATP11", "Doe", "John", _address("Roihuvuorentie 24", "00820"))],
+)
+_add_family(
+    guardians=[
+        ("220889-TP10", "O´Connor-Virtanen", "Jussi-Pekka", _address("Sahaajankatu 6", "00880")),
+        ("171099-TP00", "Virtanen", "Mamma", _address("Sahaajankatu 6", "00880")),
+    ],
+    children=[("251121ATP00", "O´Connor", "Anna-Leena", _address("Sahaajankatu 6", "00880"))],
+)
+_add_family(
+    guardians=[
+        ("171099-TP01", "Bitti", "Bertta", _address("Hevostallintie 6")),
+        ("300992-TP00", "Bitti", "Barbara", _address("Hevostallintie 6")),
+    ],
+    children=[("170921ATP10", "Bitti", "Bob", _address("Hevostallintie 6"))],
+)
+_add_family(
+    guardians=[
+        ("180996-TP00", "Selain", "Sini", _address("Hiihtäjäntie 4", "00810")),
+        ("150596-TP11", "Selain", "Seppo", _address("Hiihtäjäntie 4", "00810")),
+    ],
+    children=[("210521ATP11", "Selain", "Santeri Onni Oliver", _address("Hiihtäjäntie 4", "00810"))],
+)
+_add_family(
+    guardians=[
+        ("190486-TP00", "Nolla", "Nelli", _address("Mäenlaskijantie 14", "00810")),
+        ("060988-TP10", "Nolla", "Niilo", _address("Mäenlaskijantie 14", "00810")),
+    ],
+    children=[("140921ATP10", "Nolla", "Nina", _address("Mäenlaskijantie 14", "00810"))],
+)
+
+# Login ssn -> the PEOPLE ssn the user acts as. For test ssns that can't be used to
+# log in: the user logs in with the key and is stored (authentication/views.py), synced
+# from VTJ and saved to applications with the value. Only applied when VTJ_MOCK_ENABLED is on.
+LOGIN_SSN_ALIASES: dict[str, str] = {
+    "200760-9998": "011190-TP01",  # Tiina Testaaja
+    "240582-9477": "291190-TP10",  # Teuvo Testaaja
+    "250582-965E": "110602ATP10",  # Kimmo Koodari
+    "260582-957U": "050398-TP00",  # Kaarina Kehittäjä
+    "110180-990F": "201087-TP00",  # Anniina Admin
+    "050282-9687": "220796-TP00",  # Saana Serveri
+    "020280-968S": "290784-TP00",  # Jane Doe
+    "090999-971X": "220889-TP10",  # Jussi-Pekka O´Connor-Virtanen
+    "010180-9580": "171099-TP00",  # Mamma Virtanen
+    "090999-969V": "171099-TP01",  # Bertta Bitti
+    "221275-966C": "300992-TP00",  # Barbara Bitti
+    "010180-942F": "180996-TP00",  # Sini Selain
+    "221275-939H": "150596-TP11",  # Seppo Selain
+    "170377-9585": "190486-TP00",  # Nelli Nolla
+    "260455-999D": "060988-TP10",  # Niilo Nolla
 }
 
 

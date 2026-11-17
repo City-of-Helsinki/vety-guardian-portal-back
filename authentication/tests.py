@@ -66,6 +66,25 @@ class IdentityViewTests(APITestCase):
         self.assertEqual(self.user.national_identification_number, "010170-999X")
         self.assertEqual(self.user.helsinki_profile_id, uuid.UUID(PROFILE_UUID))
 
+    @override_settings(VTJ_MOCK_ENABLED=True)
+    @mock.patch.dict("authentication.views.LOGIN_SSN_ALIASES", {"010170-999X": "011190-TP01"})
+    def test_stores_aliased_ssn_when_vtj_mock_enabled(self, post, validate):
+        post.return_value = profile_response(PROFILE_RESPONSE)
+        response = self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.national_identification_number, "011190-TP01")
+
+    @override_settings(VTJ_MOCK_ENABLED=False)
+    @mock.patch.dict("authentication.views.LOGIN_SSN_ALIASES", {"010170-999X": "011190-TP01"})
+    def test_ignores_aliases_when_vtj_mock_disabled(self, post, validate):
+        post.return_value = profile_response(PROFILE_RESPONSE)
+        self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.national_identification_number, "010170-999X")
+
     def test_rejects_unexpected_profile_id(self, post, validate):
         body = {"data": {"myProfile": {**PROFILE_RESPONSE["data"]["myProfile"], "id": "not-a-global-id"}}}
         post.return_value = profile_response(body)
