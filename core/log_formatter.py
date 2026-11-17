@@ -28,7 +28,8 @@ def _safe_serialize(value: object) -> object:
     """
     try:
         return json_serialize(value)
-    except Exception:  # noqa: BLE001 - logging must not fail, whatever the value's __str__ or accessors raise
+    # Logging must not fail, whatever the value's __str__ or accessors raise.
+    except Exception:  # noqa: BLE001
         return f"<{type(value).__name__}>"
 
 
