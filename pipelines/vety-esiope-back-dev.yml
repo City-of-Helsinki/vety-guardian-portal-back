@@ -56,6 +56,10 @@ extends:
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
       LOG_FORMAT: "json"
+      # Audit logging, see core/audit.py. Mapped as constant_keyword in Elastic: keep one value per stream.
+      AUDIT_LOG_ENV: "dev"
+      # Include the port (otherwise port 9200 is used)
+      AUDIT_LOG_ES_URL: "https://platta-audit-elastic.hel.ninja:443"
       # Environment specific, fill in actual values:
       # Host names without scheme; localhost is needed for the in-app VTJ mock
       ALLOWED_HOSTS: "vety-esiope-back.dev-se.hel.ninja,localhost"

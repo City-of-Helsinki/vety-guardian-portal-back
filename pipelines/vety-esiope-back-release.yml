@@ -48,6 +48,10 @@ extends:
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
       LOG_FORMAT: "json"
+      # Audit logging, see core/audit.py. Mapped as constant_keyword in Elastic: keep one value per stream.
+      AUDIT_LOG_ENV: "test"
+      # Include the port (otherwise port 9200 is used)
+      AUDIT_LOG_ES_URL: "https://platta-audit-elastic.hel.ninja:443"
       # Environment specific, fill in actual values:
       # Host names without scheme; localhost is needed for the in-app VTJ mock
       ALLOWED_HOSTS: "vety-esiope-back.test-se.hel.ninja,localhost"
@@ -70,6 +74,10 @@ extends:
       DJANGO_LOG_LEVEL: "WARNING"
       ROOT_LOG_LEVEL: "WARNING"
       LOG_FORMAT: "json"
+      # Audit logging, see core/audit.py. Mapped as constant_keyword in Elastic: keep one value per stream.
+      AUDIT_LOG_ENV: "staging"
+      # Include the port (otherwise port 9200 is used)
+      AUDIT_LOG_ES_URL: "https://platta-audit-elastic.hel.fi:443"
 
       VTJ_MOCK_ENABLED: "1"
       VTJ_HEL_ENDPOINT: "http://localhost:8080/vtj-mock/api/HenkilonTunnuskysely"
@@ -97,6 +105,10 @@ extends:
       DJANGO_LOG_LEVEL: "WARNING"
       ROOT_LOG_LEVEL: "WARNING"
       LOG_FORMAT: "json"
+      # Audit logging, see core/audit.py. Mapped as constant_keyword in Elastic: keep one value per stream.
+      AUDIT_LOG_ENV: "prod"
+      # Include the port (otherwise port 9200 is used)
+      AUDIT_LOG_ES_URL: "https://platta-audit-elastic.hel.fi:443"
       # Environment specific, fill in actual values:
       # ALLOWED_HOSTS: ""
       # CORS_ALLOWED_ORIGINS: ""

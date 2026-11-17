@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.permissions import HasVerifiedIdentity
+from core.audit import Operation, Role, TargetType, audit
 
 from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJError, VTJResponseError
 from .models import Dependant, Guardian
@@ -113,8 +114,17 @@ class DependantsView(APIView):
         except Guardian.DoesNotExist:
             return Response({"error": "No such guardian"}, status=404)
 
-        dependants = DependantSerializer(guardian.dependants.all(), many=True).data
-        return Response({"dependants": dependants})
+        dependants = list(guardian.dependants.all())
+        # Before returning the data, so that a failed audit write fails the request.
+        audit(
+            request,
+            Operation.READ,
+            "Dependants listed",
+            role=Role.USER,
+            target_type=TargetType.DEPENDANT,
+            target_ids=[dependant.pk for dependant in dependants],
+        )
+        return Response({"dependants": DependantSerializer(dependants, many=True).data})
 
 
 class GuardiansView(APIView):
