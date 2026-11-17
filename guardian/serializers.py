@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 
 from .models.application import ApplicationStatus, HoidonTarve, PalvelunTarve, PreschoolApplication
 
@@ -118,7 +119,7 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
                 attrs[name] = ""
 
         if instance is not None and instance.status == ApplicationStatus.SUBMITTED:
-            raise serializers.ValidationError({"status": "Submitted application cannot be edited."})
+            raise serializers.ValidationError({"status": "Submitted application cannot be edited."}, code="application_submitted")
 
         # A guardian can enter the other guardian's contact details until that guardian has saved their own.
         current_guardian = self.get_current_guardian(instance) if instance else None
@@ -132,7 +133,7 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
 
         status = attrs.get("status", ApplicationStatus.DRAFT)
         if instance is None and status != ApplicationStatus.DRAFT:
-            raise serializers.ValidationError({"status": "New application is created as a draft."})
+            raise serializers.ValidationError({"status": "New application is created as a draft."}, code="new_application_not_draft")
 
         if status == ApplicationStatus.SUBMITTED:
             data = {name: getattr(instance, name) for name in self.Meta.fields if name != "current_guardian"} if instance else {}
@@ -150,9 +151,9 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
             if data.get("hoidon_tarve") != HoidonTarve.VUOROHOITO_VARHAISKASVATUS:
                 required.append("arkipoissaolot_lkm")
 
-        errors = {name: [REQUIRED_MESSAGE] for name in required if data.get(name) in (None, "")}
+        errors = {name: [ErrorDetail(REQUIRED_MESSAGE, code="required")] for name in required if data.get(name) in (None, "")}
         if data.get("taydentava_varhaiskasvatus") and data.get("palvelun_tarve") == PalvelunTarve.ESIOPETUS_4H:
-            errors["palvelun_tarve"] = ["Choose the scope of supplementary early childhood education."]
+            errors["palvelun_tarve"] = [ErrorDetail("Choose the scope of supplementary early childhood education.", code="palvelun_tarve_esiopetus_only")]
         if errors:
             raise serializers.ValidationError(errors)
 

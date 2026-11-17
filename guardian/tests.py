@@ -54,7 +54,7 @@ class PreschoolApplicationApiTests(APITestCase):
     def test_create_submitted_is_rejected(self):
         response = self.client.post(reverse("preschool-application-create"), {"status": "submitted"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("status", response.data)
+        self.assertEqual(response.json()["status"][0]["code"], "new_application_not_draft")
 
     def test_put_draft_with_nulls(self):
         application_id = self.create_draft()
@@ -90,7 +90,7 @@ class PreschoolApplicationApiTests(APITestCase):
             "palvelunTarve",
             "arkipoissaolotLkm",
         ]:
-            self.assertIn(field, response.json())
+            self.assertEqual(response.json()[field][0]["code"], "required")
         self.assertEqual(PreschoolApplication.objects.get(pk=application_id).status, ApplicationStatus.DRAFT)
 
     def test_submit_valid(self):
@@ -114,7 +114,7 @@ class PreschoolApplicationApiTests(APITestCase):
         }
         response = self.client.put(self.detail_url(application_id), body, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("palvelunTarve", response.json())
+        self.assertEqual(response.json()["palvelunTarve"][0]["code"], "palvelun_tarve_esiopetus_only")
 
     def test_submitted_application_is_locked(self):
         application_id = self.create_draft()
@@ -122,7 +122,14 @@ class PreschoolApplicationApiTests(APITestCase):
 
         response = self.client.put(self.detail_url(application_id), {**VALID_SUBMISSION, "kieli": "sv"}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["status"][0]["code"], "application_submitted")
         self.assertEqual(PreschoolApplication.objects.get(pk=application_id).kieli, "fi")
+
+    def test_field_validation_error_has_code(self):
+        application_id = self.create_draft()
+        response = self.client.put(self.detail_url(application_id), {"status": "draft", "h1Sahkoposti": "x"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["h1Sahkoposti"], [{"message": "Enter a valid email address.", "code": "invalid"}])
 
     def test_patch_not_allowed(self):
         application_id = self.create_draft()
