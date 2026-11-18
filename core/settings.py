@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "vtj",
     "helsinki_gdpr",
     "logger_extra",
+    "resilient_logger",
 ]
 
 MIDDLEWARE = [
@@ -344,6 +345,12 @@ LOGGING = {
             "formatter": LOG_FORMAT,
             "filters": ["context"],
         },
+        # django-resilient-logger: stores each record as a ResilientLogEntry row (its extra becomes the entry's context).
+        "resilient": {
+            "class": "resilient_logger.handlers.ResilientLogHandler",
+            # Raises MissingContextError if an entry's extra lacks one of these
+            "required_fields": ["actor", "operation", "target"],
+        },
     },
     "loggers": {
         **{
@@ -359,9 +366,51 @@ LOGGING = {
             "level": env("DJANGO_LOG_LEVEL", default="WARNING"),  # type: ignore[reportArgumentType]
             "propagate": False,
         },
+        # Audit entries only, written by core/audit.py (see AUDIT LOGGING below). Not on the root logger: that would
+        # copy every application log line into the 5-year audit store. Fixed level, not from an env var, so it
+        # can't be turned off.
+        "audit": {
+            "handlers": ["resilient"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
     "root": {
         "handlers": ["console"],
         "level": env("ROOT_LOG_LEVEL", default="WARNING"),  # type: ignore[reportArgumentType]
     },
+}
+
+
+# AUDIT LOGGING
+# https://github.com/City-of-Helsinki/django-resilient-logger
+# https://helsinkisolutionoffice.atlassian.net/wiki/spaces/platta/pages/10207363081/Elastic+Cloud+Instances+for+Audit+Logs
+#
+# core/audit.py writes entries to the "audit" logger (LOGGING above), whose "resilient" handler stores them in the
+# database in the same transaction as the operation. Platta's CronJobs (the "auditlogging" pipeline parameter) run
+# submit_unsent_entries, which sends them to Platta's audit Elastic (kept 5 years), and clear_sent_entries, which
+# deletes sent rows after 30 days. This config is only read by those two commands, so empty Elastic values don't
+# stop the app from starting.
+
+RESILIENT_LOGGER = {
+    "origin": "vety-guardian-portal-back",
+    # Mapped as constant_keyword in Elastic: everything that writes to one stream must use the same value.
+    "environment": env.str("AUDIT_LOG_ENV", default="local"),  # pyright: ignore
+    "sources": [{"class": "resilient_logger.sources.ResilientLogSource"}],
+    "targets": [
+        {
+            "class": "resilient_logger.targets.ElasticsearchLogTarget",
+            # Include the port (https://platta-audit-elastic.hel.ninja:443): without it the target uses es_port,
+            # which defaults to 9200.
+            "es_url": env.str("AUDIT_LOG_ES_URL", default=""),  # pyright: ignore
+            "es_username": env.str("AUDIT_LOG_ES_USERNAME", default=""),  # pyright: ignore
+            "es_password": env.str("AUDIT_LOG_ES_PASSWORD", default=""),  # pyright: ignore
+            "es_index": env.str("AUDIT_LOG_ES_INDEX", default=""),  # pyright: ignore
+            "required": True,
+        }
+    ],
+    # Both default to False since django-resilient-logger 2.0.0. Without them the CronJobs run but do nothing, and
+    # no entries ever reach Elastic.
+    "submit_unsent_entries": True,
+    "clear_sent_entries": True,
 }
