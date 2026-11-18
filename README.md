@@ -211,13 +211,6 @@ Project has custom commands in
 
 `guardian/management/commands/<COMMAND>.py`
 
-Simple exmple command: 'test_command.py'
-
-```
-uv run python manage.py help test_command
-uv run python manage.py test_command
-```
-
 Command to delete "PreschoolApplication" data from development database: 'db_delete_all_PreschoolApplication.py'
 
 ```
