@@ -16,7 +16,7 @@ DJANGO_SETTINGS_MODULE = "core.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 
 # Coverage for SonarCloud: uv run pytest --cov --cov-report=xml (writes coverage.xml).
-# Keep the omitted files in sync with sonar-project.properties.
+# Keep the omitted test files in sync with .sonarcloud.properties.
 [tool.coverage.run]
 source = ["."]
 branch = true
