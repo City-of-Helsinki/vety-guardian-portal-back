@@ -6,10 +6,12 @@ import logging
 import logging.config
 import socket
 import uuid
+from unittest import mock
 
 from django.conf import settings
+from django.db import DatabaseError
 from django.http import HttpRequest, JsonResponse
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import NoReverseMatch, clear_url_caches, path, reverse
 
 import core.urls
@@ -42,6 +44,39 @@ class AdminRoutingTests(SimpleTestCase):
     def test_routed_when_enabled(self):
         reload_urls(ADMIN_ENABLED=True)
         self.assertEqual(reverse("admin:index"), "/admin/")
+
+
+class HealthCheckTests(TestCase):
+    """The root path and the OpenShift probes (core/views.py) answer GET and HEAD only."""
+
+    URLS = ("/", "/healthz", "/readiness")
+
+    def test_get_and_head_ok(self):
+        for url in self.URLS:
+            for method in ("get", "head"):
+                with self.subTest(url=url, method=method):
+                    response = getattr(self.client, method)(url)
+                    self.assertEqual(response.status_code, 200)
+
+    def test_get_body(self):
+        for url in self.URLS:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).json(), {"status": "ok"})
+
+    def test_other_methods_not_allowed(self):
+        for url in self.URLS:
+            for method in ("post", "put", "patch", "delete"):
+                with self.subTest(url=url, method=method):
+                    response = getattr(self.client, method)(url)
+                    self.assertEqual(response.status_code, 405)
+                    self.assertEqual(response["Allow"], "GET, HEAD")
+
+    def test_readiness_database_unavailable(self):
+        with mock.patch("core.views.connections") as connections:
+            connections.__getitem__.return_value.cursor.side_effect = DatabaseError("down")
+            response = self.client.get("/readiness")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {"status": "error", "detail": "database unavailable"})
 
 
 def logging_view(request: HttpRequest) -> JsonResponse:

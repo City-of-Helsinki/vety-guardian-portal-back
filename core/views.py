@@ -1,12 +1,15 @@
 from django.db import DatabaseError, connections
 from django.http import HttpRequest, JsonResponse
+from django.views.decorators.http import require_safe
 
 
+@require_safe
 def healthz(request: HttpRequest) -> JsonResponse:
     """Liveness probe: process is up and can serve HTTP. No external dependencies checked."""
     return JsonResponse({"status": "ok"})
 
 
+@require_safe
 def readiness(request: HttpRequest) -> JsonResponse:
     """Readiness probe: process can actually serve traffic, i.e. the database is reachable."""
     try:
