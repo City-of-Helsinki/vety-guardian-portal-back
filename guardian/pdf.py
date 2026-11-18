@@ -3,7 +3,8 @@ Renders the application as a PDF with WeasyPrint, looking like the frontend's Es
 (vety-guardian-portal-front/src/components/application-form/steps/Esikatselu.tsx).
 
 The texts come from Locize (see translations.py), the styles and logo from guardian/static/guardian/pdf/.
-Everything is inlined into the HTML, and WeasyPrint may only read data: URLs, so it never touches files or the network.
+The logo is inlined into the HTML and the styles are passed to WeasyPrint as a string, and WeasyPrint may only read data: URLs,
+so it never touches files or the network.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 from django.template.loader import render_to_string
 from django.utils import timezone
-from weasyprint import HTML
+from weasyprint import CSS, HTML
 from weasyprint.urls import URLFetcher
 
 from .models.application import PreschoolApplication
@@ -72,7 +73,6 @@ def render_application_html(application: PreschoolApplication, lang: str) -> str
         "application": application,
         "laajuus": laajuus,
         "arkipoissaolot": arkipoissaolot,
-        "css": (ASSETS_DIR / "application_pdf.css").read_text(encoding="utf-8"),
         "logo": _logo_data_uri(lang),
     }
     return render_to_string("guardian/application_pdf.html", context)
@@ -95,4 +95,7 @@ def application_pdf_filename(application: PreschoolApplication) -> str:
 
 def render_application_pdf(application: PreschoolApplication, lang: str) -> bytes:
     html = render_application_html(application, lang)
-    return HTML(string=html, url_fetcher=URLFetcher(allowed_protocols={"data"})).write_pdf()  # pyright: ignore[reportReturnType]
+    url_fetcher = URLFetcher(allowed_protocols={"data"})
+    # Passed to WeasyPrint instead of a <style> in the template, which would need autoescaping turned off.
+    stylesheet = CSS(string=(ASSETS_DIR / "application_pdf.css").read_text(encoding="utf-8"), url_fetcher=url_fetcher)
+    return HTML(string=html, url_fetcher=url_fetcher).write_pdf(stylesheets=[stylesheet])  # pyright: ignore[reportReturnType]
