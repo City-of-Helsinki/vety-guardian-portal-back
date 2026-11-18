@@ -23,7 +23,7 @@ from .pdf import application_pdf_filename, render_application_pdf
 from .serializers import PreschoolApplicationSerializer
 from .translations import FALLBACK_LANGUAGE, SUPPORTED_LANGUAGES, TranslationError
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 
 def applications_for_guardian(user: AbstractBaseUser | AnonymousUser) -> QuerySet[PreschoolApplication]:

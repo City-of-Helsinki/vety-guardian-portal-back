@@ -42,9 +42,12 @@ extends:
       # In-app VTJ mock, see vtj/testing/views.py
       VTJ_MOCK_ENABLED: "1"
       VTJ_HEL_ENDPOINT: "http://localhost:8080/vtj-mock/api/HenkilonTunnuskysely"
+      # Django admin at /admin/: development and testing only
+      ADMIN_ENABLED: "0"
       VETY_LOG_LEVEL: "DEBUG"
       DJANGO_LOG_LEVEL: "INFO"
       ROOT_LOG_LEVEL: "WARNING"
+      LOG_FORMAT: "json"
       # Environment specific, fill in actual values:
       # Host names without scheme; localhost is needed for the in-app VTJ mock
       ALLOWED_HOSTS: "vety-esiope-back.test-se.hel.ninja,localhost"
@@ -61,9 +64,12 @@ extends:
       DEBUG: "0"
       APPLY_MIGRATIONS: "1"
       VTJ_HEL_TIMEOUT: "10"
+      # Django admin is never enabled in staging or production
+      ADMIN_ENABLED: "0"
       VETY_LOG_LEVEL: "INFO"
       DJANGO_LOG_LEVEL: "WARNING"
       ROOT_LOG_LEVEL: "WARNING"
+      LOG_FORMAT: "json"
 
       VTJ_MOCK_ENABLED: "1"
       VTJ_HEL_ENDPOINT: "http://localhost:8080/vtj-mock/api/HenkilonTunnuskysely"
@@ -85,9 +91,12 @@ extends:
       DEBUG: "0"
       APPLY_MIGRATIONS: "1"
       VTJ_HEL_TIMEOUT: "10"
+      # Django admin is never enabled in staging or production
+      ADMIN_ENABLED: "0"
       VETY_LOG_LEVEL: "INFO"
       DJANGO_LOG_LEVEL: "WARNING"
       ROOT_LOG_LEVEL: "WARNING"
+      LOG_FORMAT: "json"
       # Environment specific, fill in actual values:
       # ALLOWED_HOSTS: ""
       # CORS_ALLOWED_ORIGINS: ""

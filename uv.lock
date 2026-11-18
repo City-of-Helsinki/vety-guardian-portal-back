@@ -415,6 +415,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-logger-extra"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/99/a6734becbd7a1a72eaa1df3d1ba82031458c0c26c753c252ce2523be3e68/django_logger_extra-1.3.1.tar.gz", hash = "sha256:a78e5b0681450e9f340a1a747d912aa31fbb56a4ca1489cb0997d6f3a5bcc64c", size = 19602, upload-time = "2026-11-05T13:26:04.761Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/7d/228527ab2b449a1edd7aff86269d91d4cfa68a98eae6053e0ad5497cbc8e/django_logger_extra-1.3.1-py3-none-any.whl", hash = "sha256:f525e10e47fdb672524b70f9a2fa2357839f6bc27ce62f2701e3dc59fcc8146e", size = 12017, upload-time = "2026-11-05T13:26:03.419Z" },
+]
+
+[[package]]
 name = "django-stubs"
 version = "6.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1160,6 +1172,7 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "django-environ" },
     { name = "django-helusers" },
+    { name = "django-logger-extra" },
     { name = "djangorestframework" },
     { name = "djangorestframework-camel-case" },
     { name = "drf-spectacular" },
@@ -1192,6 +1205,7 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.9.0" },
     { name = "django-environ", specifier = ">=0.14.0" },
     { name = "django-helusers", specifier = ">=1.3.0" },
+    { name = "django-logger-extra", specifier = ">=1.3.1" },
     { name = "djangorestframework", specifier = ">=3.18.0" },
     { name = "djangorestframework-camel-case", specifier = ">=1.4.2" },
     { name = "drf-spectacular", specifier = ">=0.30.0" },

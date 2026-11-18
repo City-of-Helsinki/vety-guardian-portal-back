@@ -15,7 +15,7 @@ from .models import CustomUser
 from .profile import ProfileError, get_verified_personal_information, validate_profile_token
 from .serializers import IdentityRequestSerializer, IdentityResponseSerializer
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 
 class IdentityView(APIView):

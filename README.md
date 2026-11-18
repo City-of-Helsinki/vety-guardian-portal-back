@@ -75,7 +75,7 @@ uv run python manage.py createsuperuser
 uv run python manage.py runserver 8001
 ```
 
-Admin panel
+Admin panel (only when `ADMIN_ENABLED=on`; enabled in dev, review and test, never in staging or production)
 
 http://localhost:8001/admin/
 

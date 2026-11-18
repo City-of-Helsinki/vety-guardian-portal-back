@@ -17,7 +17,7 @@ from .exceptions import VTJError
 from .models import Dependant, Guardian
 from .vtj_types import Henkilo, Huoltaja
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 
 def _fetch_basic_info_safe(ssn: str, end_user: str) -> Henkilo:

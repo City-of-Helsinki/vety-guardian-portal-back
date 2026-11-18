@@ -24,7 +24,7 @@ from django.conf import settings
 from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJParameterError, VTJResponseError
 from .vtj_types import Henkilo, Huollettava, Huoltaja, ensure_list
 
-logger = logging.getLogger("vety-guardian-portal-back")
+logger = logging.getLogger(__name__)
 
 SOSONIMI_BASIC = "PERUSSANOMA 1"
 SOSONIMI_GET_DEPENDANTS = "HUOLTAJA-HUOLLETTAVAT"  # query person as guardian -> returns Huollettava list (DEPENDANTS)
