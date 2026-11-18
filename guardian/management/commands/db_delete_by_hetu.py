@@ -4,7 +4,7 @@ from typing import Any
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from guardian.test_data import delete_data_for_hetu
+from guardian.testing.data import delete_data_for_hetu
 
 
 # db_delete_by_hetu.py

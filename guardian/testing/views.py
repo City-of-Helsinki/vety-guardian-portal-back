@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from guardian.test_data import delete_all_applications, delete_data_for_hetu
+from guardian.testing.data import delete_all_applications, delete_data_for_hetu
 
 API_KEY_HEADER = "X-Test-Data-Api-Key"
 

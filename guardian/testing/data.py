@@ -1,14 +1,13 @@
 """
 Deletes test data so e2e tests can start from a clean state.
-Used by the db_delete_* commands and the test-data API (guardian/testing/).
+Used by the db_delete_* commands and the test-data API (views.py).
 """
 
 from django.db import transaction
 from django.db.models import Q
 
+from guardian.models.application import PreschoolApplication
 from vtj.models import Dependant, Guardian
-
-from .models.application import PreschoolApplication
 
 
 @transaction.atomic
