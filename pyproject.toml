@@ -15,6 +15,24 @@ exclude = ["*/migrations/*.py"]
 DJANGO_SETTINGS_MODULE = "core.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 
+# Coverage for SonarCloud: uv run pytest --cov --cov-report=xml (writes coverage.xml).
+# Keep the omitted test files in sync with .sonarcloud.properties.
+[tool.coverage.run]
+source = ["."]
+branch = true
+relative_files = true
+omit = [
+    ".venv/*",
+    "*/migrations/*",
+    "*/tests.py",
+    "*/test_*.py",
+    "*/*_tests.py",
+    "*/testing/*",
+    "manage.py",
+    "core/asgi.py",
+    "core/wsgi.py",
+]
+
 [project]
 name = "vety-guardian-portal-back"
 version = "0.1.0"
@@ -47,6 +65,7 @@ dev = [
     "pre-commit>=4.6.2",
     "pyright>=1.1.413",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "pytest-django>=4.14.0",
     "ruff>=0.16.5",
 ]

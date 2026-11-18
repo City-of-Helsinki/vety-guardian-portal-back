@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 
 import core.urls
 from guardian.models.application import PreschoolApplication
-from guardian.test_data import delete_all_applications, delete_data_for_hetu
+from guardian.testing.data import delete_all_applications, delete_data_for_hetu
 from vtj.models import Dependant, Guardian
 
 from .views import API_KEY_HEADER

@@ -49,6 +49,18 @@ uv run ruff format --check .
 uv run pytest
 ```
 
+### Test coverage
+
+Run the tests with line and branch coverage:
+
+```shell
+uv run pytest --cov --cov-report=term-missing --cov-report=xml
+```
+
+`term-missing` prints each file's coverage and the lines not covered. `coverage.xml` is the report SonarCloud reads.
+Migrations, test files, `testing/` folders and the startup files (`manage.py`, `asgi.py`, `wsgi.py`) are left out, see
+`[tool.coverage.run]` in `pyproject.toml`.
+
 ### Database
 
 Create database container
@@ -210,13 +222,6 @@ Never enable `VTJ_MOCK_ENABLED` in production.
 Project has custom commands in
 
 `guardian/management/commands/<COMMAND>.py`
-
-Simple exmple command: 'test_command.py'
-
-```
-uv run python manage.py help test_command
-uv run python manage.py test_command
-```
 
 Command to delete "PreschoolApplication" data from development database: 'db_delete_all_PreschoolApplication.py'
 
