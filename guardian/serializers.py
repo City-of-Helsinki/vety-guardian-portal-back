@@ -5,7 +5,9 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.settings import api_settings
 
+from .eligibility import check_eligibility
 from .models.application import ApplicationStatus, HoidonTarve, PalvelunTarve, PreschoolApplication
 
 REQUIRED_MESSAGE = "This field is required."
@@ -138,11 +140,21 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
         if status == ApplicationStatus.SUBMITTED:
             data = {name: getattr(instance, name) for name in self.Meta.fields if name != "current_guardian"} if instance else {}
             data.update(attrs)
+            self._validate_eligibility(instance)
             self._validate_submission(data)
             if not data.get("taydentava_varhaiskasvatus"):
                 attrs["palvelun_tarve"] = PalvelunTarve.ESIOPETUS_4H
 
         return attrs
+
+    def _validate_eligibility(self, instance: PreschoolApplication | None) -> None:
+        """Also covers drafts created before the eligibility rules existed, or before the child's VTJ data changed."""
+        if instance is None or instance.dependant is None:
+            return
+        reasons = check_eligibility(instance.dependant)
+        if reasons:
+            errors = [ErrorDetail("The child is not eligible for this preschool application.", code=reason) for reason in reasons]
+            raise serializers.ValidationError({api_settings.NON_FIELD_ERRORS_KEY: errors})
 
     def _validate_submission(self, data: dict[str, Any]) -> None:
         required = ["kieli", "hakenut_ensisijaisesti_yksityiseen", "taydentava_varhaiskasvatus", "h1_sahkoposti"]

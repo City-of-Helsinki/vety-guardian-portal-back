@@ -433,8 +433,28 @@ PEOPLE: dict[str, dict] = {
 }
 
 
-def _address(street: str, postal_code: str = "") -> dict:
-    return {"LahiosoiteS": street, "Postinumero": postal_code, "PostitoimipaikkaS": "HELSINKI"}
+def _address(street: str, postal_code: str = "", postal_district: str = "HELSINKI") -> dict:
+    return {"LahiosoiteS": street, "Postinumero": postal_code, "PostitoimipaikkaS": postal_district}
+
+
+# Kotikunta (home municipality) groups for the postal districts used in PEOPLE, keyed by PostitoimipaikkaS (upper case).
+# Kuntanumero values follow Statistics Finland's municipality classification (Tilastokeskuksen kuntaluokitus).
+# A person gets the Kotikunta of their address's postal district unless their entry has its own "Kotikunta" key.
+MUNICIPALITIES: dict[str, dict] = {
+    "HELSINKI": {"Kuntanumero": "091", "KuntaS": "Helsinki", "KuntaR": "Helsingfors"},
+    "ESPOO": {"Kuntanumero": "049", "KuntaS": "Espoo", "KuntaR": "Esbo"},
+    "VANTAA": {"Kuntanumero": "092", "KuntaS": "Vantaa", "KuntaR": "Vanda"},
+    "JÄRVENPÄÄ": {"Kuntanumero": "186", "KuntaS": "Järvenpää", "KuntaR": "Träskända"},
+    "VAASA": {"Kuntanumero": "905", "KuntaS": "Vaasa", "KuntaR": "Vasa"},
+    "VARKAUS": {"Kuntanumero": "915", "KuntaS": "Varkaus", "KuntaR": "Varkaus"},
+}
+
+
+def _kotikunta(person: dict) -> dict | None:
+    if "Kotikunta" in person:
+        return person["Kotikunta"]
+    district = (person.get("address") or {}).get("PostitoimipaikkaS", "")
+    return MUNICIPALITIES.get(district.upper())
 
 
 def _birth_date(ssn: str) -> str:
@@ -531,6 +551,13 @@ _add_family(
     ],
     children=[("140921ATP10", "Nolla", "Nina", _address("Mäenlaskijantie 14", "00810"))],
 )
+# A family living in Espoo: the child is of preschool age, but the home municipality isn't Helsinki,
+# so the application is refused (guardian/eligibility.py). Log in as 030393-995E (a DVV test person,
+# see LOGIN_SSN_ALIASES).
+_add_family(
+    guardians=[("120388-TP00", "Espoolainen", "Elina", _address("Kauppamiehentie 6", "02150", "ESPOO"))],
+    children=[("030621ATP00", "Espoolainen", "Eetu", _address("Kauppamiehentie 6", "02150", "ESPOO"))],
+)
 
 # Login ssn -> the PEOPLE ssn the user acts as. For test ssns that can't be used to
 # log in: the user logs in with the key and is stored (authentication/views.py), synced
@@ -551,6 +578,8 @@ LOGIN_SSN_ALIASES: dict[str, str] = {
     "221275-939H": "150596-TP11",  # Seppo Selain
     "170377-9585": "190486-TP00",  # Nelli Nolla
     "260455-999D": "060988-TP10",  # Niilo Nolla
+    # Not an Edlevo test user: a DVV test person (Totti Aalto Testihenkilo, home municipality Kuopio).
+    "030393-995E": "120388-TP00",  # Elina Espoolainen
 }
 
 
@@ -605,6 +634,9 @@ def handle_request(path: str, raw_body: bytes) -> tuple[int, dict]:
     # "address" key (i.e. an active Turvakielto).
     if person.get("address"):
         henkilo["VakinainenKotimainenLahiosoite"] = person["address"]
+    kotikunta = _kotikunta(person)
+    if kotikunta:
+        henkilo["Kotikunta"] = kotikunta
     if sosonimi == "HUOLTAJA-HUOLLETTAVAT":
         henkilo["Huollettava"] = person.get("Huollettava", [])
     elif sosonimi == "HUOLLETTAVA-HUOLTAJAT":

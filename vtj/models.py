@@ -60,6 +60,8 @@ class PersonRecord(BaseModel):
     street_address = models.CharField("lähiosoite", max_length=200, blank=True)
     postal_code = models.CharField("postinumero", max_length=10, blank=True)
     postal_district = models.CharField("postitoimipaikka", max_length=100, blank=True)
+    # VTJ Kotikunta/Kuntanumero (e.g. "091"). Left blank like the address whenever the family has a Turvakielto.
+    home_municipality_code = models.CharField("kotikunnan kuntanumero", max_length=3, blank=True)
     address_protected = models.BooleanField(
         "turvakielto",
         default=False,
@@ -90,12 +92,20 @@ class PersonRecord(BaseModel):
         self.first_names = identity.first_names
         self.date_of_birth = identity.date_of_birth
 
-    def update_address(self, address: Lahiosoite | None, *, address_protected: bool, withhold: bool) -> None:
+    def update_address(
+        self,
+        address: Lahiosoite | None,
+        *,
+        address_protected: bool,
+        withhold: bool,
+        home_municipality_code: str = "",
+    ) -> None:
         """
-        Updates this instance's address fields in place (does not save()).
+        Updates this instance's address and home municipality fields in place (does not save()).
         `address_protected` is recorded as-is regardless of `withhold`.
         """
         self.address_protected = address_protected
+        self.home_municipality_code = "" if withhold or address_protected else home_municipality_code
         if withhold or address_protected or address is None:
             self.street_address = ""
             self.postal_code = ""

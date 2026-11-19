@@ -124,6 +124,9 @@ class Henkilo:
     first_names: str
     address_protected: bool
     address: Lahiosoite | None
+    # Kotikunta/Kuntanumero, e.g. "091". Empty when VTJ returns no Kotikunta group.
+    # See guardian/eligibility.py for why this is not yet used for the Helsinki check.
+    home_municipality_code: str = ""
 
     @classmethod
     def from_response(cls, ssn: str, henkilo: dict) -> Henkilo:
@@ -134,4 +137,5 @@ class Henkilo:
             first_names=(henkilo.get("NykyisetEtunimet") or {}).get("Etunimet", "") or "",
             address_protected=has_address_protection(henkilo),
             address=Lahiosoite.from_henkilo(henkilo),
+            home_municipality_code=str((henkilo.get("Kotikunta") or {}).get("Kuntanumero", "") or ""),
         )
