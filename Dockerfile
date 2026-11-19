@@ -38,7 +38,14 @@ RUN mkdir -p /usr/src/python-uwsgi-common && \
     rm -rf /usr/src/${UWSGI_COMMON_REF}.tar.gz && \
     rm -rf /usr/src/python-uwsgi-common
 
-COPY . .
+# Copy only what the application needs at runtime, so local files (.env, spreadsheets, caches) never end up in the image.
+COPY manage.py docker-entrypoint.sh ./
+COPY .prod/ .prod/
+COPY authentication/ authentication/
+COPY core/ core/
+COPY guardian/ guardian/
+COPY integrations/ integrations/
+COPY vtj/ vtj/
 
 # Static files are collected at container start (docker-entrypoint.sh), so the directory must be writable.
 # Group 0 permissions allow OpenShift's arbitrary user IDs to write to it.
