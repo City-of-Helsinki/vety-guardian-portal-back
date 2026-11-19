@@ -8,8 +8,10 @@ from rest_framework.test import APITestCase
 
 from authentication.models import CustomUser
 from vtj.exceptions import VTJConnectionError, VTJResponseError
+from vtj.models import Dependant
 from vtj.testing.mock_server import NOT_FOUND_SSN, PATH, handle_request
 from vtj.testing.views import henkilon_tunnuskysely
+from vtj.vtj_types import Henkilo, Lahiosoite
 
 MOCK_URL = "/vtj-mock/api/HenkilonTunnuskysely"
 
@@ -111,3 +113,26 @@ class IsProtectedFamilyErrorTests(APITestCase):
         response = self.get_with_error(VTJConnectionError("timeout"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.data["code"], "vtj_unavailable")
+
+
+class HomeMunicipalityTests(SimpleTestCase):
+    def test_kotikunta_is_parsed(self):
+        henkilo = Henkilo.from_response("010101-0101", {"Kotikunta": {"Kuntanumero": "091", "KuntaS": "Helsinki", "KuntaR": "Helsingfors"}})
+        self.assertEqual(henkilo.home_municipality_code, "091")
+
+    def test_missing_kotikunta(self):
+        self.assertEqual(Henkilo.from_response("010101-0101", {}).home_municipality_code, "")
+
+    def test_mock_returns_kotikunta(self):
+        _, data = handle_request(PATH, _body("030621ATP00"))
+        self.assertEqual(data["VTJHenkiloVastaussanoma"]["Henkilo"]["Kotikunta"]["Kuntanumero"], "049")
+        _, data = handle_request(PATH, _body("010170-999X"))
+        self.assertEqual(data["VTJHenkiloVastaussanoma"]["Henkilo"]["Kotikunta"]["Kuntanumero"], "091")
+
+    def test_home_municipality_code_is_withheld_with_the_address(self):
+        address = Lahiosoite(street_address="Katu 1", postal_code="00100", postal_district="HELSINKI")
+        dependant = Dependant(ssn="010101-0101")
+        dependant.update_address(address, address_protected=False, withhold=False, home_municipality_code="091")
+        self.assertEqual(dependant.home_municipality_code, "091")
+        dependant.update_address(address, address_protected=False, withhold=True, home_municipality_code="091")
+        self.assertEqual(dependant.home_municipality_code, "")

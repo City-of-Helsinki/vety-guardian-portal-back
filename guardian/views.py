@@ -18,6 +18,7 @@ from authentication.permissions import HasVerifiedIdentity
 from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
 
+from .eligibility import check_eligibility
 from .models.application import ApplicationStatus, PreschoolApplication
 from .pdf import application_pdf_filename, render_application_pdf
 from .serializers import PreschoolApplicationSerializer
@@ -122,7 +123,8 @@ class PreschoolApplicationForDependantView(APIView):
 
     Returns the dependant's existing application (200), or creates a new draft (201)
     prefilled with the child's and guardians' VTJ data.
-    Refused (403) when the family has an active Turvakielto.
+    Refused (403) when the family has an active Turvakielto, and creating a new draft is refused (403) when the
+    child is not eligible (guardian/eligibility.py; `code` is the reason, e.g. "not_preschool_age").
     """
 
     permission_classes = [HasVerifiedIdentity]
@@ -171,6 +173,10 @@ class PreschoolApplicationForDependantView(APIView):
             if application is not None:
                 # Returns the dependant's existing application (200)
                 return Response(PreschoolApplicationSerializer(application, context={"request": request}).data, status=status.HTTP_200_OK)
+
+            reasons = check_eligibility(dependant)
+            if reasons:
+                return Response({"error": "Not eligible for preschool application", "code": reasons[0]}, status=status.HTTP_403_FORBIDDEN)
 
             # Creates a new draft application (201)
             other_guardian = next((g for g in guardians if g.pk != guardian.pk), None)
