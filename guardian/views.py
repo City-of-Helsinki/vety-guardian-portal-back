@@ -1,5 +1,6 @@
 import logging
 import uuid
+from typing import Any
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AnonymousUser
@@ -12,12 +13,14 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from authentication.permissions import HasVerifiedIdentity
 from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
 
+from .emails import send_submission_confirmation
 from .models.application import ApplicationStatus, PreschoolApplication
 from .pdf import application_pdf_filename, render_application_pdf
 from .serializers import PreschoolApplicationSerializer
@@ -64,6 +67,11 @@ class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         return applications_for_guardian(self.request.user)
+
+    def perform_update(self, serializer: BaseSerializer[Any]) -> None:
+        application = serializer.save()
+        if application.status == ApplicationStatus.SUBMITTED:
+            send_submission_confirmation(application)
 
 
 class PreschoolApplicationPdfView(generics.GenericAPIView):
