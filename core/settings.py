@@ -190,6 +190,7 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.MultiPartParser",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "core.exceptions.exception_handler",
 }
 
 # djangorestframework_camel_case: parse "h1Sahkoposti" -> "h1_sahkoposti" (default would be "h_1_sahkoposti").
