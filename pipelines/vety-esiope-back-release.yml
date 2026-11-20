@@ -63,6 +63,8 @@ extends:
       HELSINKI_PROFILE_API_AUDIENCE: "profile-api-test"
       HELSINKI_PROFILE_API_TIMEOUT: "10"
       LOCIZE_PROJECT_ID: "8d851889-2950-437b-80e8-b4ef26317ff9"
+      SENTRY_ENVIRONMENT: "testing"
+      SENTRY_PROJECT: "vety-guardian-portal-back"
     ## Staging definitions
     configMapStage: # pod environment variables
       DEBUG: "0"
@@ -93,6 +95,8 @@ extends:
       VETY_API_URL: "https://testi.vaso.hel.fi/api"
       VETY_API_TIMEOUT: "10"
       LOCIZE_PROJECT_ID: "8d851889-2950-437b-80e8-b4ef26317ff9"
+      SENTRY_ENVIRONMENT: "staging"
+      SENTRY_PROJECT: "vety-guardian-portal-back"
     ## Production definitions
     ## Production is using staging image
     configMap: # pod environment variables
@@ -109,6 +113,8 @@ extends:
       AUDIT_LOG_ENV: "prod"
       # Include the port (otherwise port 9200 is used)
       AUDIT_LOG_ES_URL: "https://platta-audit-elastic.hel.fi:443"
+      SENTRY_ENVIRONMENT: "production"
+      SENTRY_PROJECT: "vety-guardian-portal-back"
       # Environment specific, fill in actual values:
       # ALLOWED_HOSTS: ""
       # CORS_ALLOWED_ORIGINS: ""
