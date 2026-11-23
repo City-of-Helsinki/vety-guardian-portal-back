@@ -21,6 +21,7 @@ from typing import Any
 import requests
 from django.conf import settings
 
+from . import auth
 from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJParameterError, VTJResponseError
 from .vtj_types import Henkilo, Huollettava, Huoltaja, ensure_list
 
@@ -52,22 +53,14 @@ def _call(ssn: str, sosonimi: str, end_user: str) -> dict:
         "SoSoNimi": sosonimi,
         "Loppukayttaja": end_user,
     }
-    headers = {"Content-Type": "application/json"}
-
-    secret_header = getattr(settings, "VTJ_HEL_SHARED_SECRET_HEADER", None)
-    if secret_header:
-        headers[secret_header] = settings.VTJ_HEL_SHARED_SECRET
-
     # logger.info("VTJ query ssn=%s***, SoSoNimi=%s, end_user=%s", ssn[:6], sosonimi, end_user)
     logger.info(f"VTJ query SoSoNimi={sosonimi}, end_user={end_user}")
 
     try:
-        response = requests.post(
-            settings.VTJ_HEL_ENDPOINT,
-            json=payload,
-            headers=headers,
-            timeout=getattr(settings, "VTJ_HEL_TIMEOUT", 10),
-        )
+        response = _post(payload, auth.get_access_token())
+        if response.status_code == 401 and settings.VTJ_HEL_CLIENT_ID:
+            # The cached token may have been revoked or expired early - retry once with a fresh one.
+            response = _post(payload, auth.get_access_token(force_refresh=True))
         response.raise_for_status()
     except requests.exceptions.HTTPError as exc:
         status = exc.response.status_code if exc.response is not None else None
@@ -89,6 +82,18 @@ def _call(ssn: str, sosonimi: str, end_user: str) -> dict:
     data = _unwrap_envelope(data)
     _check_return_code(data)
     return data
+
+
+def _post(payload: dict, token: str | None) -> requests.Response:
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return requests.post(
+        settings.VTJ_HEL_ENDPOINT,
+        json=payload,
+        headers=headers,
+        timeout=settings.VTJ_HEL_TIMEOUT,
+    )
 
 
 def _unwrap_envelope(data: dict) -> dict:

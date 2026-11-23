@@ -259,8 +259,11 @@ SPECTACULAR_SETTINGS = {
 # https://helsinkisolutionoffice.atlassian.net/wiki/spaces/platta/pages/7610695829/Suomi.fi-palveluv+yl+integrations
 
 VTJ_HEL_ENDPOINT = env("VTJ_HEL_ENDPOINT")  # test or cluster address depending on environment
-VTJ_HEL_SHARED_SECRET_HEADER = env("VTJ_HEL_SHARED_SECRET_HEADER", default=None)  # e.g. "X-Api-Key"  # type: ignore[reportArgumentType]
-VTJ_HEL_SHARED_SECRET = env("VTJ_HEL_SHARED_SECRET", default=None)  # type: ignore[reportArgumentType]
+# OAuth2 client credentials for the gateway (scope vtj-api.persons:read, see vtj/auth.py).
+# Leave VTJ_HEL_CLIENT_ID empty to call the endpoint without a token (in-app mock).
+VTJ_HEL_TOKEN_URL = env("VTJ_HEL_TOKEN_URL", default="https://auth.test.apigw.hel.fi/realms/api/protocol/openid-connect/token")  # type: ignore[reportArgumentType]
+VTJ_HEL_CLIENT_ID = env("VTJ_HEL_CLIENT_ID", default="")  # type: ignore[reportArgumentType]
+VTJ_HEL_CLIENT_SECRET = env("VTJ_HEL_CLIENT_SECRET", default="")  # type: ignore[reportArgumentType]
 VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
 # Serve the VTJ mock from this app at /vtj-mock/api/HenkilonTunnuskysely. Never enable in production.
 VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]

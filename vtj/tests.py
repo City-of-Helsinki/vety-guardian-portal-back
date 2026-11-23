@@ -1,13 +1,15 @@
 import json
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import requests
 from django.test import SimpleTestCase, override_settings
 from django.urls import path
 from rest_framework.test import APITestCase
 
 from authentication.models import CustomUser
-from vtj.exceptions import VTJConnectionError, VTJResponseError
+from vtj import auth, client
+from vtj.exceptions import VTJAuthenticationError, VTJConnectionError, VTJResponseError
 from vtj.testing.mock_server import NOT_FOUND_SSN, PATH, handle_request
 from vtj.testing.views import henkilon_tunnuskysely
 
@@ -111,3 +113,89 @@ class IsProtectedFamilyErrorTests(APITestCase):
         response = self.get_with_error(VTJConnectionError("timeout"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.data["code"], "vtj_unavailable")
+
+
+def _response(status: int, body: dict | None = None):
+    resp = Mock(spec=requests.Response)
+    resp.status_code = status
+    resp.ok = status < 400
+    resp.json.return_value = body or {}
+    if status >= 400:
+        resp.raise_for_status.side_effect = requests.exceptions.HTTPError(response=resp)
+    return resp
+
+
+VTJ_OK = {"Paluukoodi": {"koodi": "0000"}, "Henkilo": {}}
+
+
+@override_settings(
+    VTJ_HEL_ENDPOINT="https://vtj.example/api/HenkilonTunnuskysely",
+    VTJ_HEL_TOKEN_URL="https://auth.example/token",
+    VTJ_HEL_CLIENT_ID="client",
+    VTJ_HEL_CLIENT_SECRET="secret",
+)
+class ClientTokenTests(SimpleTestCase):
+    def setUp(self):
+        auth.clear_cached_token()
+        self.addCleanup(auth.clear_cached_token)
+
+    def _route(self, token_responses: list, api_responses: list):
+        def post(url, **kwargs):
+            return token_responses.pop(0) if url == "https://auth.example/token" else api_responses.pop(0)
+
+        return patch("requests.post", side_effect=post)
+
+    def test_token_is_requested_with_client_credentials_and_sent_as_bearer(self):
+
+        with self._route([_response(200, {"access_token": "t1", "expires_in": 300})], [_response(200, VTJ_OK)]) as post:
+            client.get_basic_info("010101-0101", "user")
+
+        token_call, api_call = post.call_args_list
+        self.assertEqual(token_call.kwargs["auth"], ("client", "secret"))
+        self.assertEqual(token_call.kwargs["data"], {"grant_type": "client_credentials", "scope": "vtj-api.persons:read"})
+        self.assertEqual(api_call.kwargs["headers"]["Authorization"], "Bearer t1")
+
+    def test_token_is_cached_between_calls(self):
+
+        with self._route([_response(200, {"access_token": "t1", "expires_in": 300})], [_response(200, VTJ_OK), _response(200, VTJ_OK)]) as post:
+            client.get_basic_info("010101-0101", "user")
+            client.get_basic_info("010101-0101", "user")
+
+        self.assertEqual(post.call_count, 3)
+
+    def test_expired_token_is_refreshed(self):
+
+        tokens = [_response(200, {"access_token": "t1", "expires_in": 0}), _response(200, {"access_token": "t2", "expires_in": 300})]
+        with self._route(tokens, [_response(200, VTJ_OK), _response(200, VTJ_OK)]) as post:
+            client.get_basic_info("010101-0101", "user")
+            client.get_basic_info("010101-0101", "user")
+
+        self.assertEqual(post.call_args_list[-1].kwargs["headers"]["Authorization"], "Bearer t2")
+
+    def test_401_retries_once_with_fresh_token(self):
+
+        tokens = [_response(200, {"access_token": "t1", "expires_in": 300}), _response(200, {"access_token": "t2", "expires_in": 300})]
+        with self._route(tokens, [_response(401), _response(200, VTJ_OK)]) as post:
+            client.get_basic_info("010101-0101", "user")
+
+        self.assertEqual(post.call_args_list[-1].kwargs["headers"]["Authorization"], "Bearer t2")
+
+    def test_persistent_401_raises_authentication_error(self):
+
+        tokens = [_response(200, {"access_token": "t1", "expires_in": 300}), _response(200, {"access_token": "t2", "expires_in": 300})]
+        with self._route(tokens, [_response(401), _response(401)]), self.assertRaises(VTJAuthenticationError):
+            client.get_basic_info("010101-0101", "user")
+
+    def test_rejected_client_credentials_raise_authentication_error(self):
+
+        with self._route([_response(401)], []), self.assertRaises(VTJAuthenticationError):
+            client.get_basic_info("010101-0101", "user")
+
+    @override_settings(VTJ_HEL_CLIENT_ID="")
+    def test_no_token_without_client_id(self):
+
+        with self._route([], [_response(200, VTJ_OK)]) as post:
+            client.get_basic_info("010101-0101", "user")
+
+        self.assertEqual(post.call_count, 1)
+        self.assertNotIn("Authorization", post.call_args.kwargs["headers"])
