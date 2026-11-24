@@ -5,6 +5,7 @@ from unittest import mock
 
 import requests
 from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
@@ -14,8 +15,10 @@ from rest_framework.test import APITestCase
 from authentication.models import CustomUser
 from vtj.models import Dependant, Guardian
 
+from .eligibility import NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI, check_eligibility, is_allowed_municipality
 from .models.application import ApplicationStatus, PreschoolApplication
 from .pdf import application_pdf_filename, render_application_html
+from .preschool_year import get_target_preschool_year
 from .translations import TranslationError, Translator
 
 GUARDIAN_SSN = "010170-999X"
@@ -33,10 +36,17 @@ def create_user(ssn: str = "") -> CustomUser:
     return CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number=ssn, helsinki_profile_id=uuid.uuid4() if ssn else None)
 
 
+# Pins the eligibility rules so the tests don't depend on the clock or the environment:
+# children born in 2021 living in Helsinki are eligible.
+ELIGIBILITY_SETTINGS = {"ESIOPETUS_TARGET_YEAR": 2027, "ESIOPETUS_MUNICIPALITY_NAME": "Helsinki", "ESIOPETUS_MUNICIPALITY_CODE": ""}
+ELIGIBLE_DEPENDANT = {"date_of_birth": date(2021, 1, 18), "postal_district": "HELSINKI"}
+
+
+@override_settings(**ELIGIBILITY_SETTINGS)
 class PreschoolApplicationApiTests(APITestCase):
     def setUp(self):
         guardian = Guardian.objects.create(ssn=GUARDIAN_SSN)
-        self.dependant = Dependant.objects.create(ssn="010118-9998")
+        self.dependant = Dependant.objects.create(ssn="180121A998X", **ELIGIBLE_DEPENDANT)
         self.dependant.guardians.add(guardian)
         self.client.force_authenticate(create_user(GUARDIAN_SSN))
 
@@ -225,6 +235,124 @@ class PreschoolApplicationApiTests(APITestCase):
         application.refresh_from_db()
         self.assertEqual(application.h1_sahkoposti, "h1@example.com")
         self.assertEqual(application.h1_puhelinnumero, "")
+
+
+@override_settings(ESIOPETUS_TARGET_YEAR=None)
+class PreschoolYearTests(SimpleTestCase):
+    def test_next_calendar_year(self):
+        self.assertEqual(get_target_preschool_year(date(2026, 11, 19)), 2027)
+        self.assertEqual(get_target_preschool_year(date(2027, 1, 1)), 2028)
+
+    @override_settings(ESIOPETUS_TARGET_YEAR=2030)
+    def test_setting_overrides(self):
+        self.assertEqual(get_target_preschool_year(date(2026, 11, 19)), 2030)
+
+    def test_year_changes_at_helsinki_midnight(self):
+        # 2026-12-31 22:30 UTC is already 2027-01-01 in Helsinki.
+        with mock.patch("guardian.preschool_year.timezone.now", return_value=datetime(2026, 12, 31, 22, 30, tzinfo=UTC)):
+            self.assertEqual(get_target_preschool_year(), 2028)
+        with mock.patch("guardian.preschool_year.timezone.now", return_value=datetime(2026, 12, 31, 21, 30, tzinfo=UTC)):
+            self.assertEqual(get_target_preschool_year(), 2027)
+
+
+class MunicipalityTests(SimpleTestCase):
+    @override_settings(ESIOPETUS_MUNICIPALITY_NAME="Helsinki", ESIOPETUS_MUNICIPALITY_CODE="")
+    def test_name_is_compared_to_postal_district(self):
+        self.assertTrue(is_allowed_municipality("", "Helsinki"))
+        self.assertTrue(is_allowed_municipality("", " HELSINKI "))
+        self.assertFalse(is_allowed_municipality("091", "Espoo"))
+        self.assertFalse(is_allowed_municipality("091", ""))
+        self.assertFalse(is_allowed_municipality("091", None))
+
+    @override_settings(ESIOPETUS_MUNICIPALITY_NAME="", ESIOPETUS_MUNICIPALITY_CODE="091")
+    def test_code_is_compared_to_home_municipality_code(self):
+        self.assertTrue(is_allowed_municipality("091", "Espoo"))
+        self.assertFalse(is_allowed_municipality("049", "Helsinki"))
+        self.assertFalse(is_allowed_municipality("", "Helsinki"))
+        self.assertFalse(is_allowed_municipality(None, "Helsinki"))
+
+    @override_settings(ESIOPETUS_MUNICIPALITY_NAME="Helsinki", ESIOPETUS_MUNICIPALITY_CODE="091")
+    def test_name_wins_when_both_are_set(self):
+        self.assertTrue(is_allowed_municipality("049", "Helsinki"))
+        self.assertFalse(is_allowed_municipality("091", "Espoo"))
+
+    @override_settings(ESIOPETUS_MUNICIPALITY_NAME=" ", ESIOPETUS_MUNICIPALITY_CODE="")
+    def test_neither_set_is_a_configuration_error(self):
+        with self.assertRaises(ImproperlyConfigured):
+            is_allowed_municipality("091", "Helsinki")
+
+
+@override_settings(**ELIGIBILITY_SETTINGS)
+class CheckEligibilityTests(SimpleTestCase):
+    def dependant(self, **fields) -> Dependant:
+        return Dependant(ssn="180121A998X", **{**ELIGIBLE_DEPENDANT, **fields})
+
+    def test_eligible(self):
+        self.assertEqual(check_eligibility(self.dependant()), [])
+
+    def test_wrong_age(self):
+        self.assertEqual(check_eligibility(self.dependant(date_of_birth=date(2020, 12, 31))), [NOT_PRESCHOOL_AGE])
+        self.assertEqual(check_eligibility(self.dependant(date_of_birth=date(2022, 1, 1))), [NOT_PRESCHOOL_AGE])
+        self.assertEqual(check_eligibility(self.dependant(date_of_birth=None)), [NOT_PRESCHOOL_AGE])
+
+    def test_wrong_age_is_reported_alone(self):
+        dependant = self.dependant(date_of_birth=date(2016, 2, 1), postal_district="ESPOO")
+        self.assertEqual(check_eligibility(dependant), [NOT_PRESCHOOL_AGE])
+
+    def test_not_resident(self):
+        self.assertEqual(check_eligibility(self.dependant(postal_district="ESPOO")), [NOT_RESIDENT_HELSINKI])
+        self.assertEqual(check_eligibility(self.dependant(postal_district="")), [NOT_RESIDENT_HELSINKI])
+
+    def test_explicit_target_year(self):
+        self.assertEqual(check_eligibility(self.dependant(), target_year=2028), [NOT_PRESCHOOL_AGE])
+
+
+@override_settings(**ELIGIBILITY_SETTINGS)
+class EligibilityApiTests(APITestCase):
+    def setUp(self):
+        guardian = Guardian.objects.create(ssn=GUARDIAN_SSN)
+        self.dependant = Dependant.objects.create(ssn="180121A998X", **ELIGIBLE_DEPENDANT)
+        self.dependant.guardians.add(guardian)
+        self.client.force_authenticate(create_user(GUARDIAN_SSN))
+
+    def for_dependant(self):
+        return self.client.post(reverse("preschool-application-for-dependant", kwargs={"dependant_id": self.dependant.pk}))
+
+    def update_dependant(self, **fields):
+        Dependant.objects.filter(pk=self.dependant.pk).update(**fields)
+
+    def test_draft_is_not_created_for_wrong_age(self):
+        self.update_dependant(date_of_birth=date(2016, 2, 1))
+        response = self.for_dependant()
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["code"], NOT_PRESCHOOL_AGE)
+        self.assertFalse(PreschoolApplication.objects.exists())
+
+    def test_draft_is_not_created_outside_helsinki(self):
+        self.update_dependant(postal_district="ESPOO")
+        response = self.for_dependant()
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["code"], NOT_RESIDENT_HELSINKI)
+        self.assertFalse(PreschoolApplication.objects.exists())
+
+    def test_existing_draft_cannot_be_submitted_when_not_eligible(self):
+        application_id = self.for_dependant().json()["id"]
+        self.update_dependant(postal_district="ESPOO")
+
+        response = self.client.put(reverse("preschool-application-detail", kwargs={"uuid": application_id}), VALID_SUBMISSION, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["nonFieldErrors"][0]["code"], NOT_RESIDENT_HELSINKI)
+        self.assertEqual(PreschoolApplication.objects.get(pk=application_id).status, ApplicationStatus.DRAFT)
+
+    def test_dependant_list_has_eligibility(self):
+        other = Dependant.objects.create(ssn="010216-998X", date_of_birth=date(2016, 2, 1), postal_district="HELSINKI")
+        other.guardians.add(Guardian.objects.get(ssn=GUARDIAN_SSN))
+
+        response = self.client.get(reverse("vtj:dependants"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        eligibility = {d["ssn"]: d["eligibility"] for d in response.json()["dependants"]}
+        self.assertEqual(eligibility["180121A998X"], {"canApply": True, "reasons": [], "targetPreschoolYear": 2027})
+        self.assertEqual(eligibility["010216-998X"], {"canApply": False, "reasons": [NOT_PRESCHOOL_AGE], "targetPreschoolYear": 2027})
 
 
 TRANSLATIONS = {

@@ -95,7 +95,12 @@ def sync_family(guardian_ssn: str, end_user: str) -> bool:
             person = guardians_by_ssn.get(ssn) or dependants_by_ssn.get(ssn)
             if person is None:
                 continue
-            person.update_address(henkilo.address, address_protected=henkilo.address_protected, withhold=is_protected_family)
+            person.update_address(
+                henkilo.address,
+                address_protected=henkilo.address_protected,
+                withhold=is_protected_family,
+                home_municipality_code=henkilo.home_municipality_code,
+            )
             person.save()
 
     return is_protected_family

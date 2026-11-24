@@ -202,6 +202,25 @@ All families have no Turvakielto, every guardian is a guardian of the child, and
 The family henkilötunnus values don't pass the `Guardian`/`Dependant` henkilötunnus format validator, so editing these
 records in the Django admin fails validation. The VTJ sync and the applications are not affected.
 
+### Other test families (login aliases)
+
+Mock families for specific test cases. They are not Edlevo test families, but they work the same way: the family
+henkilötunnus values are made up, so log in with the login henkilötunnus, a DVV test person found in DVV's test data,
+which `LOGIN_SSN_ALIASES` maps to the family. The portal shows the mock family's data, not the DVV test person's data.
+
+| Family     | Role     | Login henkilötunnus | Family henkilötunnus | Name              | Notes                                                    |
+| ---------- | -------- | ------------------- | -------------------- | ----------------- | -------------------------------------------------------- |
+| Espoo      | Guardian | `030393-995E`       | `120388-TP00`        | Elina Espoolainen | Single parent. Login: DVV's Totti Aalto Testihenkilo     |
+| Espoo      | Child    |                     | `030621ATP00`        | Eetu Espoolainen  | Born 2021-06-03                                          |
+
+Test cases:
+
+- **Espoo:** the family lives in Espoo, so the home municipality isn't Helsinki and the application is refused
+  (`guardian/eligibility.py`).
+
+To add a family, add it with `_add_family` and its login henkilötunnus to `LOGIN_SSN_ALIASES` in
+`vtj/testing/mock_server.py`, then add its rows and test case here.
+
 ### Run VTJ mock server for development environment
 
 ```shell

@@ -16,6 +16,7 @@ from pathlib import Path
 import environ
 import sentry_sdk
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -267,6 +268,20 @@ VTJ_HEL_CLIENT_SECRET = env("VTJ_HEL_CLIENT_SECRET", default="")  # type: ignore
 VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
 # Serve the VTJ mock from this app at /vtj-mock/api/HenkilonTunnuskysely. Never enable in production.
 VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
+
+
+# Preschool (esiopetus) application eligibility, see guardian/eligibility.py and guardian/preschool_year.py.
+# The preschool year applications are made for. Leave empty to use next calendar year (Helsinki time).
+_esiopetus_target_year = env.str("ESIOPETUS_TARGET_YEAR", default="").strip()  # pyright: ignore
+ESIOPETUS_TARGET_YEAR: int | None = int(_esiopetus_target_year) if _esiopetus_target_year else None
+# The child's home municipality must match one of these. If ESIOPETUS_MUNICIPALITY_NAME is set, it is always used and
+# compared to the child's postal district (VTJ PostitoimipaikkaS). Otherwise ESIOPETUS_MUNICIPALITY_CODE is compared to
+# the VTJ Kotikunta/Kuntanumero. To switch to the code, set ESIOPETUS_MUNICIPALITY_NAME to an empty value and
+# ESIOPETUS_MUNICIPALITY_CODE=091 - see the comment in guardian/eligibility.py before doing so.
+ESIOPETUS_MUNICIPALITY_NAME = env.str("ESIOPETUS_MUNICIPALITY_NAME", default="Helsinki")  # pyright: ignore
+ESIOPETUS_MUNICIPALITY_CODE = env.str("ESIOPETUS_MUNICIPALITY_CODE", default="")  # pyright: ignore
+if not ESIOPETUS_MUNICIPALITY_NAME.strip() and not ESIOPETUS_MUNICIPALITY_CODE.strip():
+    raise ImproperlyConfigured("Set ESIOPETUS_MUNICIPALITY_NAME or ESIOPETUS_MUNICIPALITY_CODE.")
 
 
 # hki-vety, which receives the submitted applications (management command send_applications_to_vety).
