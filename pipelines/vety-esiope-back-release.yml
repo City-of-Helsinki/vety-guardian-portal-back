@@ -96,7 +96,7 @@ extends:
     ## Production definitions
     ## Production is using staging image
     configMap: # pod environment variables
-      ALLOWED_HOSTS: "vety-esiope-back.prod-se.hel.ninja"
+      ALLOWED_HOSTS: "vety-esiope-back.prod-se.hel.ninja,vety-esiope-back.hel.ninja"
       CORS_ALLOWED_ORIGINS: "https://vety-esiope-front.prod-se.hel.ninja"
       CSRF_TRUSTED_ORIGINS: "https://vety-esiope-front.prod-se.hel.ninja"
       TOKEN_AUTH_ISSUER: "https://tunnistus.hel.ninja/auth/realms/helsinki-tunnistus"
