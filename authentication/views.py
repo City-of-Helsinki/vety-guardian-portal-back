@@ -2,12 +2,14 @@ import logging
 import uuid
 
 from django.conf import settings
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.audit import Message, Operation, Role, TargetType, audit
 from vtj.serializers import ErrorResponseSerializer
 from vtj.testing.mock_server import LOGIN_SSN_ALIASES
 
@@ -61,9 +63,13 @@ class IdentityView(APIView):
         if settings.VTJ_MOCK_ENABLED:
             # Test ssns that can't log in are reached by logging in with an alias.
             ssn = LOGIN_SSN_ALIASES.get(ssn, ssn)
-        if user.national_identification_number != ssn or user.helsinki_profile_id != profile_id:
-            user.national_identification_number = ssn
-            user.helsinki_profile_id = profile_id
-            user.save(update_fields=["national_identification_number", "helsinki_profile_id"])
+        with transaction.atomic():
+            if user.national_identification_number != ssn or user.helsinki_profile_id != profile_id:
+                user.national_identification_number = ssn
+                user.helsinki_profile_id = profile_id
+                user.save(update_fields=["national_identification_number", "helsinki_profile_id"])
+                audit(request, Operation.UPDATE, Message.IDENTITY_UPDATED, role=Role.OWNER, target_type=TargetType.USER, target_ids=[user.uuid])
+            else:
+                audit(request, Operation.READ, Message.IDENTITY_VERIFIED, role=Role.OWNER, target_type=TargetType.USER, target_ids=[user.uuid])
 
         return Response({"first_name": info.first_name, "last_name": info.last_name, "email": info.email, "phone": info.phone})

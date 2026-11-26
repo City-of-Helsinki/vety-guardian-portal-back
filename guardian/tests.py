@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, date, datetime
 from io import StringIO
@@ -10,10 +11,12 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from resilient_logger.models import ResilientLogEntry
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from authentication.models import CustomUser
+from core.test_audit import CREATE_ENTRY, only_entry
 from vtj.models import Dependant, Guardian
 
 from .eligibility import NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI, check_eligibility, is_allowed_municipality
@@ -24,6 +27,7 @@ from .preschool_year import get_target_preschool_year
 from .translations import TranslationError, Translator
 
 GUARDIAN_SSN = "010170-999X"
+CHILD_SSN = "180121A998X"
 
 VALID_SUBMISSION = {
     "status": "submitted",
@@ -57,16 +61,6 @@ class PreschoolApplicationApiTests(APITestCase):
 
     def detail_url(self, application_id: str) -> str:
         return reverse("preschool-application-detail", kwargs={"uuid": application_id})
-
-    def test_create_empty_draft(self):
-        response = self.client.post(reverse("preschool-application-create"), {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["status"], "draft")
-
-    def test_create_submitted_is_rejected(self):
-        response = self.client.post(reverse("preschool-application-create"), {"status": "submitted"}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json()["status"][0]["code"], "new_application_not_draft")
 
     def test_put_draft_with_nulls(self):
         application_id = self.create_draft()
@@ -644,6 +638,44 @@ class SendApplicationsToVetyTests(TestCase):
             call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
         put.assert_not_called()
 
+    @mock.patch("guardian.vety.requests.put")
+    def test_sent_application_writes_entry(self, put):
+        put.return_value = self.response(201)
+        application = self.create_application()
+
+        call_command("send_applications_to_vety", stdout=StringIO())
+
+        entry = only_entry(self)
+        self.assertEqual(entry.message, "Application sent to vety-data-export-web")
+        context = entry.context
+        self.assertEqual(context["operation"], "READ")
+        self.assertEqual(context["actor"], {"role": "SYSTEM"})
+        self.assertEqual(context["target"], {"object_ids": [str(application.pk)]})
+        self.assertEqual(context["target_type"], "application")
+        self.assertEqual(context["recipient"], "vety-data-export-web")
+        serialized = json.dumps(context)
+        for ssn in (GUARDIAN_SSN, "010120A9998"):
+            self.assertNotIn(ssn, serialized)
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_failed_send_writes_no_entry(self, put):
+        put.return_value = self.response(400)
+        self.create_application()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        self.assertFalse(ResilientLogEntry.objects.exists())
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_failed_audit_write_stops_the_run_and_leaves_application_unsent(self, put):
+        put.return_value = self.response(201)
+        application = self.create_application()
+        self.create_application()
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        put.assert_called_once()
+        application.refresh_from_db()
+        self.assertIsNone(application.vety_sent_at)
+
 
 class ConfirmationRecipientsTests(SimpleTestCase):
     def test_skips_blank_and_duplicate_addresses(self):
@@ -662,3 +694,106 @@ class ConfirmationRecipientsTests(SimpleTestCase):
         with mock.patch("guardian.emails.EmailMessage.send", side_effect=[OSError("SMTP down"), 1]), self.assertLogs("guardian.emails", "ERROR") as logs:
             self.assertEqual(send_submission_confirmation(application), 1)
         self.assertNotIn("a@example.com", logs.output[0])
+
+
+@override_settings(**ELIGIBILITY_SETTINGS)
+@mock.patch("guardian.translations.get_translations", side_effect=fake_get_translations)
+class ApplicationAuditTests(APITestCase):
+    """Audit entries of the application endpoints (core/audit.py)."""
+
+    def setUp(self):
+        guardian = Guardian.objects.create(ssn=GUARDIAN_SSN)
+        self.dependant = Dependant.objects.create(ssn=CHILD_SSN, **ELIGIBLE_DEPENDANT)
+        self.dependant.guardians.add(guardian)
+        self.user = create_user(GUARDIAN_SSN)
+        self.client.force_authenticate(self.user)
+
+    def create_application(self, **fields) -> PreschoolApplication:
+        defaults = {"dependant": self.dependant, "henkilotunnus": CHILD_SSN, "h1_henkilotunnus": GUARDIAN_SSN}
+        return PreschoolApplication.objects.create(**(defaults | fields))
+
+    def for_dependant_url(self) -> str:
+        return reverse("preschool-application-for-dependant", kwargs={"dependant_id": self.dependant.pk})
+
+    def detail_url(self, application: PreschoolApplication) -> str:
+        return reverse("preschool-application-detail", kwargs={"uuid": application.pk})
+
+    def assert_only_entry(self, operation: str, message: str, application_id: object) -> None:
+        entry = only_entry(self)
+        self.assertEqual(entry.message, message)
+        context = entry.context
+        self.assertEqual(context["operation"], operation)
+        self.assertEqual(context["actor"]["role"], "OWNER")
+        self.assertEqual(context["actor"]["uuid"], str(self.user.uuid))
+        self.assertEqual(context["target"]["object_ids"], [str(application_id)])
+        self.assertEqual(context["target_type"], "application")
+        serialized = json.dumps(context)
+        for ssn in (GUARDIAN_SSN, CHILD_SSN):
+            self.assertNotIn(ssn, serialized)
+
+    def test_creating_draft(self, _):
+        response = self.client.post(self.for_dependant_url())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.json())
+        self.assert_only_entry("CREATE", "Application created", response.data["id"])
+
+    def test_opening_existing_application_through_for_dependant(self, _):
+        application = self.create_application()
+        response = self.client.post(self.for_dependant_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assert_only_entry("READ", "Application opened", application.pk)
+
+    def test_opening_application(self, _):
+        application = self.create_application()
+        response = self.client.get(self.detail_url(application))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assert_only_entry("READ", "Application opened", application.pk)
+
+    def test_saving_draft(self, _):
+        application = self.create_application()
+        response = self.client.put(self.detail_url(application), {"status": "draft", "kieli": "fi"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assert_only_entry("UPDATE", "Application saved", application.pk)
+
+    def test_submitting(self, _):
+        application = self.create_application()
+        response = self.client.put(self.detail_url(application), VALID_SUBMISSION, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+        self.assert_only_entry("UPDATE", "Application submitted", application.pk)
+
+    def test_downloading_pdf(self, _):
+        application = self.create_application(status=ApplicationStatus.SUBMITTED, kieli="fi")
+        response = self.client.get(reverse("preschool-application-pdf", kwargs={"uuid": application.pk}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assert_only_entry("READ", "Application PDF downloaded", application.pk)
+
+    def test_failed_audit_write_rolls_back_creation(self, _):
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.post(self.for_dependant_url())
+        self.assertFalse(PreschoolApplication.objects.exists())
+
+    def test_failed_audit_write_rolls_back_submission_and_sends_no_email(self, _):
+        application = self.create_application()
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.put(self.detail_url(application), VALID_SUBMISSION, format="json")
+        application.refresh_from_db()
+        self.assertEqual(application.status, ApplicationStatus.DRAFT)
+        self.assertEqual(mail.outbox, [])
+
+    def test_failed_audit_write_fails_reads(self, _):
+        application = self.create_application(status=ApplicationStatus.SUBMITTED, kieli="fi")
+        for url in (self.detail_url(application), reverse("preschool-application-pdf", kwargs={"uuid": application.pk})):
+            with self.subTest(url=url), mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+                self.client.get(url)
+
+    def test_refused_requests_write_no_entry(self, _):
+        application = self.create_application()
+        # Validation error: submitting without the required fields.
+        self.assertEqual(self.client.put(self.detail_url(application), {"status": "submitted"}, format="json").status_code, status.HTTP_400_BAD_REQUEST)
+        # A draft has no PDF.
+        self.assertEqual(self.client.get(reverse("preschool-application-pdf", kwargs={"uuid": application.pk})).status_code, status.HTTP_404_NOT_FOUND)
+        # Another guardian's application looks nonexistent.
+        self.client.force_authenticate(create_user("010101-0101"))
+        self.assertEqual(self.client.get(self.detail_url(application)).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(self.client.post(self.for_dependant_url()).status_code, status.HTTP_404_NOT_FOUND)
+
+        self.assertFalse(ResilientLogEntry.objects.exists())

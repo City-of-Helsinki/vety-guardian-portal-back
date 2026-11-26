@@ -2,8 +2,10 @@ from argparse import ArgumentParser
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 
+from core.audit import Message, Operation, Role, TargetType, audit
 from guardian.models.application import ApplicationStatus, PreschoolApplication
 from guardian.vety import VetyConfigurationError, VetyError, send_application
 
@@ -30,8 +32,20 @@ class Command(BaseCommand):
                 self.stderr.write(f"Application {application.pk}: {exc}")
                 failed.append(str(application.pk))
                 continue
-            # update() instead of save(): don't touch updated_at or race with other fields.
-            PreschoolApplication.objects.filter(pk=application.pk).update(vety_sent_at=timezone.now())
+            # A failed audit write stops the run and leaves the application unsent, so the next run sends it again
+            # (a PUT to vety-data-export-web, which overwrites).
+            with transaction.atomic():
+                # update() instead of save(): don't touch updated_at or race with other fields.
+                PreschoolApplication.objects.filter(pk=application.pk).update(vety_sent_at=timezone.now())
+                audit(
+                    None,
+                    Operation.READ,
+                    Message.APPLICATION_SENT,
+                    role=Role.SYSTEM,
+                    target_type=TargetType.APPLICATION,
+                    target_ids=[application.pk],
+                    extra={"recipient": "vety-data-export-web"},
+                )
             sent += 1
 
         self.stdout.write(f"Sent {sent} applications to hki-vety.")

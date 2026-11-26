@@ -36,8 +36,13 @@ class CustomUser(AbstractUser, SerializableMixin):
         return self.username
 
     def serialize(self) -> dict[str, Any]:
+        """The GDPR API query's response (helsinki_gdpr calls this only for GET)."""
+        from core.audit import Message, Operation, Role, TargetType, audit
+
         from .gdpr import serialize_related_data
 
         data = super().serialize()
         data["children"].extend(serialize_related_data(self))
+        # Before returning the data, so that a failed audit write fails the request.
+        audit(None, Operation.READ, Message.GDPR_DATA_EXPORTED, role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[self.uuid])
         return data

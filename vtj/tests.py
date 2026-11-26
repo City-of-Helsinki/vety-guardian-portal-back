@@ -5,12 +5,14 @@ from unittest.mock import Mock, patch
 import requests
 from django.test import SimpleTestCase, override_settings
 from django.urls import path
+from resilient_logger.models import ResilientLogEntry
 from rest_framework.test import APITestCase
 
 from authentication.models import CustomUser
+from core.test_audit import CREATE_ENTRY, only_entry
 from vtj import auth, client
 from vtj.exceptions import VTJAuthenticationError, VTJConnectionError, VTJResponseError
-from vtj.models import Dependant
+from vtj.models import Dependant, Guardian
 from vtj.testing.mock_server import NOT_FOUND_SSN, PATH, handle_request
 from vtj.testing.views import henkilon_tunnuskysely
 from vtj.vtj_types import Henkilo, Lahiosoite
@@ -98,7 +100,7 @@ class IsProtectedFamilyErrorTests(APITestCase):
         self.client.force_authenticate(user)
 
     def get_with_error(self, exc: Exception):
-        with patch("vtj.views.sync_family", side_effect=exc):
+        with patch("vtj.views.fetch_family", side_effect=exc):
             return self.client.get("/vtj/is_protected_family/")
 
     def test_person_not_found(self):
@@ -224,3 +226,81 @@ class ClientTokenTests(SimpleTestCase):
 
         self.assertEqual(post.call_count, 1)
         self.assertNotIn("Authorization", post.call_args.kwargs["headers"])
+
+
+def _mock_vtj_post(payload: dict, token: str | None):
+    """client._post answered by the VTJ mock server's fixtures."""
+    status, body = handle_request(PATH, json.dumps(payload).encode())
+    return _response(status, body)
+
+
+FAMILY_GUARDIAN_SSN = "010170-999X"
+FAMILY_CO_GUARDIAN_SSN = "010101-0101"
+FAMILY_DEPENDANT_SSNS = {"010115-999X", "010216-998X"}
+
+
+@patch("vtj.client.auth.get_access_token", return_value=None)
+@patch("vtj.client._post", side_effect=_mock_vtj_post)
+class IsProtectedFamilyTests(APITestCase):
+    """GET /vtj/is_protected_family/ against the VTJ mock's fixtures: the saved rows and their audit entries."""
+
+    def setUp(self):
+        self.user = CustomUser.objects.create(uuid=uuid.uuid4(), national_identification_number=FAMILY_GUARDIAN_SSN, helsinki_profile_id=uuid.uuid4())
+        self.client.force_authenticate(self.user)
+
+    def get(self):
+        return self.client.get("/vtj/is_protected_family/")
+
+    def test_saves_family(self, *_):
+        response = self.get()
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data, {"is_protected_family": False})
+        self.assertEqual(set(Guardian.objects.values_list("ssn", flat=True)), {FAMILY_GUARDIAN_SSN, FAMILY_CO_GUARDIAN_SSN})
+        self.assertEqual(set(Dependant.objects.values_list("ssn", flat=True)), FAMILY_DEPENDANT_SSNS)
+        # The mock gives the first child both guardians, the second only the queried one.
+        guardians_by_dependant = {dependant.ssn: set(dependant.guardians.values_list("ssn", flat=True)) for dependant in Dependant.objects.all()}
+        self.assertEqual(guardians_by_dependant, {"010115-999X": {FAMILY_GUARDIAN_SSN, FAMILY_CO_GUARDIAN_SSN}, "010216-998X": {FAMILY_GUARDIAN_SSN}})
+
+    def test_writes_guardian_and_dependant_entries(self, *_):
+        self.get()
+
+        entries = {entry.message: entry.context for entry in ResilientLogEntry.objects.all()}
+        self.assertEqual(set(entries), {"Guardians saved from VTJ", "Dependants saved from VTJ"})
+        expected_ids = {
+            "Guardians saved from VTJ": ("guardian", {str(pk) for pk in Guardian.objects.values_list("pk", flat=True)}),
+            "Dependants saved from VTJ": ("dependant", {str(pk) for pk in Dependant.objects.values_list("pk", flat=True)}),
+        }
+        for message, (target_type, ids) in expected_ids.items():
+            context = entries[message]
+            self.assertEqual(context["operation"], "UPDATE")
+            self.assertEqual(context["actor"]["role"], "USER")
+            self.assertEqual(context["actor"]["uuid"], str(self.user.uuid))
+            self.assertEqual(context["target_type"], target_type)
+            self.assertEqual(set(context["target"]["object_ids"]), ids)
+            serialized = json.dumps(context)
+            for ssn in {FAMILY_GUARDIAN_SSN, FAMILY_CO_GUARDIAN_SSN, *FAMILY_DEPENDANT_SSNS}:
+                self.assertNotIn(ssn, serialized)
+
+    def test_guardian_without_dependants_writes_only_guardian_entry(self, *_):
+        guardian_self = Henkilo(ssn=FAMILY_GUARDIAN_SSN, last_name="Example", first_names="Parent", address_protected=False, address=None)
+        with patch("vtj.sync.client.get_dependants", return_value=(guardian_self, [])):
+            self.assertEqual(self.get().status_code, 200)
+
+        entry = only_entry(self)
+        self.assertEqual(entry.message, "Guardians saved from VTJ")
+        self.assertEqual(entry.context["target"]["object_ids"], [str(Guardian.objects.get().pk)])
+
+    def test_failed_audit_write_rolls_back_saved_rows(self, *_):
+        with patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.get()
+
+        self.assertFalse(Guardian.objects.exists())
+        self.assertFalse(Dependant.objects.exists())
+
+    def test_vtj_error_writes_no_entry(self, *_):
+        self.user.national_identification_number = NOT_FOUND_SSN
+        self.user.save()
+        self.assertEqual(self.get().status_code, 404)
+
+        self.assertFalse(ResilientLogEntry.objects.exists())

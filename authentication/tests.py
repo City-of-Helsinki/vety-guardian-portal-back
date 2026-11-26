@@ -1,4 +1,5 @@
 import base64
+import json
 import time
 import uuid
 from importlib.metadata import version
@@ -10,9 +11,11 @@ from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from helusers.jwt import JWT as HelusersJWT
 from jwt.algorithms import RSAAlgorithm
+from resilient_logger.models import ResilientLogEntry
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from core.test_audit import CREATE_ENTRY, only_entry
 from guardian.models.application import ApplicationStatus, PreschoolApplication
 from vtj.models import Dependant, Guardian
 
@@ -120,6 +123,47 @@ class IdentityViewTests(APITestCase):
         response = self.client.post(self.url, {"profileApiToken": "token"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_new_identity_writes_update_entry(self, post, validate):
+        post.return_value = profile_response(PROFILE_RESPONSE)
+        self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        entry = only_entry(self)
+        self.assertEqual(entry.message, "Identity updated")
+        context = entry.context
+        self.assertEqual(context["operation"], "UPDATE")
+        self.assertEqual(context["actor"]["role"], "OWNER")
+        self.assertEqual(context["actor"]["uuid"], str(self.user.uuid))
+        self.assertEqual(context["target"]["object_ids"], [str(self.user.uuid)])
+        self.assertEqual(context["target_type"], "user")
+        self.assertEqual(context["helsinki_profile_id"], PROFILE_UUID)
+        self.assertNotIn("010170-999X", json.dumps(context))
+
+    def test_unchanged_identity_writes_read_entry(self, post, validate):
+        self.user.national_identification_number = "010170-999X"
+        self.user.helsinki_profile_id = uuid.UUID(PROFILE_UUID)
+        self.user.save()
+        post.return_value = profile_response(PROFILE_RESPONSE)
+        self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        entry = only_entry(self)
+        self.assertEqual(entry.message, "Identity verified")
+        self.assertEqual(entry.context["operation"], "READ")
+
+    def test_failed_audit_write_rolls_back_identity(self, post, validate):
+        post.return_value = profile_response(PROFILE_RESPONSE)
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.national_identification_number, "")
+        self.assertIsNone(self.user.helsinki_profile_id)
+
+    def test_refused_request_writes_no_entry(self, post, validate):
+        post.return_value = profile_response({"data": {"myProfile": {"verifiedPersonalInformation": None}}})
+        self.client.post(self.url, {"profileApiToken": "token"}, format="json")
+
+        self.assertFalse(ResilientLogEntry.objects.exists())
 
 
 TOKEN_AUDIENCE = "vety-api-test"
@@ -254,3 +298,45 @@ class GdprApiTests(APITestCase):
         self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
         self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def assert_only_system_entry(self, operation: str, message: str) -> None:
+        entry = only_entry(self)
+        self.assertEqual(entry.message, message)
+        context = entry.context
+        self.assertEqual(context["operation"], operation)
+        self.assertEqual(context["actor"], {"role": "SYSTEM"})
+        self.assertEqual(context["target"], {"object_ids": [str(self.user.uuid)]})
+        self.assertEqual(context["target_type"], "user")
+        self.assertNotIn(self.guardian_ssn, json.dumps(context))
+
+    def test_query_writes_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_200_OK)
+        self.assert_only_system_entry("READ", "GDPR data exported")
+
+    def test_delete_writes_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_204_NO_CONTENT)
+        self.assert_only_system_entry("DELETE", "GDPR data deleted")
+
+    def test_delete_dry_run_writes_no_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        self.client.delete(f"{self.url}?dry_run=true")
+        self.assertFalse(ResilientLogEntry.objects.exists())
+
+    def test_failed_audit_write_fails_query(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.get(self.url)
+
+    def test_failed_audit_write_keeps_user(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.delete(self.url)
+        self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def test_refused_requests_write_no_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token())
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(ResilientLogEntry.objects.exists())

@@ -15,7 +15,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from authentication.models import CustomUser
-from core.audit import Operation, Role, TargetType, audit
+from core.audit import Message, Operation, Role, TargetType, audit
 from vtj.models import Dependant, Guardian
 
 GUARDIAN_SSN = "010170-999X"
@@ -43,7 +43,7 @@ class AuditTests(TestCase):
 
     def test_user_entry(self):
         ids = [uuid.uuid4(), uuid.uuid4()]
-        audit(self.request(REMOTE_ADDR="10.0.0.1"), Operation.READ, "Dependants listed", role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=ids)
+        audit(self.request(REMOTE_ADDR="10.0.0.1"), Operation.READ, Message.DEPENDANTS_LISTED, role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=ids)
 
         entry = only_entry(self)
         self.assertEqual(entry.message, "Dependants listed")
@@ -58,7 +58,7 @@ class AuditTests(TestCase):
 
     def test_client_ip_from_first_forwarded_for_address(self):
         request = self.request(HTTP_X_FORWARDED_FOR="203.0.113.5, 10.0.0.2", REMOTE_ADDR="10.0.0.1")
-        audit(request, Operation.READ, "Application read", role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[uuid.uuid4()])
+        audit(request, Operation.READ, Message.APPLICATION_OPENED, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[uuid.uuid4()])
 
         self.assertEqual(only_entry(self).context["actor"]["ip_address"], "203.0.113.5")
 
@@ -67,7 +67,7 @@ class AuditTests(TestCase):
         audit(
             None,
             Operation.READ,
-            "Application disclosed to vety-data-export-web",
+            Message.APPLICATION_OPENED,
             role=Role.SYSTEM,
             target_type=TargetType.APPLICATION,
             target_ids=[application_id],
@@ -82,7 +82,12 @@ class AuditTests(TestCase):
 
     def test_system_entry_with_request_has_no_user(self):
         audit(
-            self.request(REMOTE_ADDR="10.0.0.1"), Operation.DELETE, "User deleted", role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[self.user.uuid]
+            self.request(REMOTE_ADDR="10.0.0.1"),
+            Operation.DELETE,
+            Message.IDENTITY_UPDATED,
+            role=Role.SYSTEM,
+            target_type=TargetType.USER,
+            target_ids=[self.user.uuid],
         )
 
         context = only_entry(self).context
@@ -91,18 +96,26 @@ class AuditTests(TestCase):
 
     def test_user_entry_needs_request(self):
         with self.assertRaises(ValueError):
-            audit(None, Operation.READ, "Dependants listed", role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=[])
+            audit(None, Operation.READ, Message.DEPENDANTS_LISTED, role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=[])
         self.assertFalse(ResilientLogEntry.objects.exists())
 
     def test_user_entry_needs_logged_in_user(self):
         request = self.request()
         request.user = AnonymousUser()
         with self.assertRaises(ValueError):
-            audit(request, Operation.READ, "Dependants listed", role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=[])
+            audit(request, Operation.READ, Message.DEPENDANTS_LISTED, role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=[])
         self.assertFalse(ResilientLogEntry.objects.exists())
 
     def test_extra_does_not_override_standard_fields(self):
-        audit(None, Operation.READ, "x", role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[], extra={"status": "FORBIDDEN", "target_type": "other"})
+        audit(
+            None,
+            Operation.READ,
+            Message.IDENTITY_VERIFIED,
+            role=Role.SYSTEM,
+            target_type=TargetType.USER,
+            target_ids=[],
+            extra={"status": "FORBIDDEN", "target_type": "other"},
+        )
 
         context = only_entry(self).context
         self.assertEqual(context["status"], "SUCCESS")
@@ -110,7 +123,7 @@ class AuditTests(TestCase):
 
     def test_failed_write_raises(self):
         with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
-            audit(None, Operation.READ, "x", role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[])
+            audit(None, Operation.READ, Message.IDENTITY_VERIFIED, role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[])
 
     def test_audit_logger_requires_actor_operation_and_target(self):
         """settings.LOGGING: the "audit" logger writes through the "resilient" handler, with required_fields."""
@@ -122,7 +135,7 @@ class AuditTests(TestCase):
         get_resilient_logger_config.cache_clear()
         self.addCleanup(get_resilient_logger_config.cache_clear)
         ids = [uuid.uuid4()]
-        audit(self.request(REMOTE_ADDR="10.0.0.1"), Operation.READ, "Dependants listed", role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=ids)
+        audit(self.request(REMOTE_ADDR="10.0.0.1"), Operation.READ, Message.DEPENDANTS_LISTED, role=Role.USER, target_type=TargetType.DEPENDANT, target_ids=ids)
 
         entry = only_entry(self)
         document = ResilientLogSourceEntry(entry).get_document()

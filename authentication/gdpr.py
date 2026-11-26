@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from django.db import models
 from django.db.models import Q
 
+from core.audit import Message, Operation, Role, TargetType, audit
 from guardian.models.application import PreschoolApplication
 from vtj.models import Guardian
 
@@ -49,5 +50,9 @@ def get_user(user: CustomUser) -> CustomUser:
 def delete_gdpr_data(user: CustomUser, dry_run: bool) -> None:
     """
     GDPR_API_DELETER
+
+    helsinki_gdpr runs this in a transaction and rolls it back for a dry run, so a dry run leaves no audit entry and
+    a failed audit write keeps the user.
     """
+    audit(None, Operation.DELETE, Message.GDPR_DATA_DELETED, role=Role.SYSTEM, target_type=TargetType.USER, target_ids=[user.uuid])
     user.delete()

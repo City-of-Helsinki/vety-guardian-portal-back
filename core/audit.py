@@ -13,7 +13,7 @@ Entry document (`audit_event` in Elastic):
   django-logger-extra's context, source_pk by resilient-logger.
 
 No personal data beyond the actor's uuid, IP address and Helsinki-profiili id: never henkilötunnus, names,
-addresses, emails or phone numbers. Targets are record ids and the message is a fixed text.
+addresses, emails or phone numbers. Targets are record ids and the message is a Message member (a fixed text).
 
 Fail closed: errors are not caught. Call audit() inside the same transaction as the change, and before returning
 data for reads, so that a failed write fails the request.
@@ -52,6 +52,28 @@ class Role(StrEnum):
     SYSTEM = "SYSTEM"
 
 
+class Message(StrEnum):
+    """The entry's message: a fixed English text per event, never personal data. Add new events here."""
+
+    # authentication
+    IDENTITY_VERIFIED = "Identity verified"
+    IDENTITY_UPDATED = "Identity updated"
+    # vtj
+    DEPENDANTS_LISTED = "Dependants listed"
+    GUARDIANS_SAVED_FROM_VTJ = "Guardians saved from VTJ"
+    DEPENDANTS_SAVED_FROM_VTJ = "Dependants saved from VTJ"
+    # guardian (applications)
+    APPLICATION_CREATED = "Application created"
+    APPLICATION_OPENED = "Application opened"
+    APPLICATION_SAVED = "Application saved"
+    APPLICATION_SUBMITTED = "Application submitted"
+    APPLICATION_PDF_DOWNLOADED = "Application PDF downloaded"
+    # system
+    APPLICATION_SENT = "Application sent to vety-data-export-web"
+    GDPR_DATA_EXPORTED = "GDPR data exported"
+    GDPR_DATA_DELETED = "GDPR data deleted"
+
+
 class TargetType(StrEnum):
     APPLICATION = "application"
     GUARDIAN = "guardian"
@@ -70,7 +92,7 @@ def client_ip(request: HttpRequest | Request) -> str | None:
 def audit(
     request: HttpRequest | Request | None,
     operation: Operation,
-    message: str,
+    message: Message,
     *,
     role: Role,
     target_type: TargetType,
@@ -82,7 +104,7 @@ def audit(
 
     :param request: the request, or None where the code doesn't get one (management commands, the GDPR functions).
         Required for OWNER and USER entries, whose actor is request.user (a logged-in CustomUser).
-    :param message: a fixed English text, e.g. "Application submitted". Never personal data.
+    :param message: the event, e.g. Message.APPLICATION_SUBMITTED.
     :param target_ids: ids of the records the operation concerns.
     :param extra: additional fixed values (strings), e.g. {"recipient": "vety-data-export-web"}.
     """

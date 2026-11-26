@@ -134,6 +134,8 @@ class PreschoolApplicationSerializer(serializers.ModelSerializer):
                     attrs.pop(name, None)
 
         status = attrs.get("status", ApplicationStatus.DRAFT)
+        # No endpoint creates applications through this serializer (for-dependant creates them directly).
+        # Kept as a guard in case one is added back.
         if instance is None and status != ApplicationStatus.DRAFT:
             raise serializers.ValidationError({"status": "New application is created as a draft."}, code="new_application_not_draft")
 
