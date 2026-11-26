@@ -4,6 +4,7 @@ from io import StringIO
 from unittest import mock
 
 import requests
+from django.core import mail
 from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import CommandError, call_command
@@ -16,6 +17,7 @@ from authentication.models import CustomUser
 from vtj.models import Dependant, Guardian
 
 from .eligibility import NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI, check_eligibility, is_allowed_municipality
+from .emails import confirmation_recipients, send_submission_confirmation
 from .models.application import ApplicationStatus, PreschoolApplication
 from .pdf import application_pdf_filename, render_application_html
 from .preschool_year import get_target_preschool_year
@@ -125,6 +127,40 @@ class PreschoolApplicationApiTests(APITestCase):
         response = self.client.put(self.detail_url(application_id), body, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()["palvelunTarve"][0]["code"], "palvelun_tarve_esiopetus_only")
+
+    def test_submit_sends_confirmation_to_both_guardians(self):
+        application_id = self.create_draft()
+        body = {**VALID_SUBMISSION, "h2Sahkoposti": "toinen@example.com"}
+        response = self.client.put(self.detail_url(application_id), body, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+
+        self.assertEqual([m.to for m in mail.outbox], [["huoltaja@example.com"], ["toinen@example.com"]])
+        message = mail.outbox[0]
+        self.assertIn("esiopetukseen", message.subject)
+        for text in ("vastaanotettu", "tagits emot", "received"):
+            self.assertIn(text, message.body)
+
+    def test_draft_save_sends_no_email(self):
+        application_id = self.create_draft()
+        self.client.put(self.detail_url(application_id), {"status": "draft", "h1Sahkoposti": "huoltaja@example.com"}, format="json")
+        self.assertEqual(mail.outbox, [])
+
+    def test_resubmit_sends_no_second_email(self):
+        application_id = self.create_draft()
+        self.client.put(self.detail_url(application_id), VALID_SUBMISSION, format="json")
+        response = self.client.put(self.detail_url(application_id), VALID_SUBMISSION, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_submit_succeeds_when_email_fails(self):
+        application_id = self.create_draft()
+        with (
+            mock.patch("guardian.emails.EmailMessage.send", side_effect=OSError("SMTP down")),
+            self.assertLogs("guardian.emails", "ERROR"),
+        ):
+            response = self.client.put(self.detail_url(application_id), VALID_SUBMISSION, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(PreschoolApplication.objects.get(pk=application_id).status, ApplicationStatus.SUBMITTED)
 
     def test_submitted_application_is_locked(self):
         application_id = self.create_draft()
@@ -607,3 +643,22 @@ class SendApplicationsToVetyTests(TestCase):
         with self.assertRaises(CommandError):
             call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
         put.assert_not_called()
+
+
+class ConfirmationRecipientsTests(SimpleTestCase):
+    def test_skips_blank_and_duplicate_addresses(self):
+        cases = [
+            (("a@example.com", "b@example.com"), ["a@example.com", "b@example.com"]),
+            (("a@example.com", ""), ["a@example.com"]),
+            (("A@example.com", " a@example.com "), ["A@example.com"]),
+            (("", ""), []),
+        ]
+        for (h1, h2), expected in cases:
+            with self.subTest(h1=h1, h2=h2):
+                self.assertEqual(confirmation_recipients(PreschoolApplication(h1_sahkoposti=h1, h2_sahkoposti=h2)), expected)
+
+    def test_one_failed_recipient_does_not_stop_the_other(self):
+        application = PreschoolApplication(h1_sahkoposti="a@example.com", h2_sahkoposti="b@example.com")
+        with mock.patch("guardian.emails.EmailMessage.send", side_effect=[OSError("SMTP down"), 1]), self.assertLogs("guardian.emails", "ERROR") as logs:
+            self.assertEqual(send_submission_confirmation(application), 1)
+        self.assertNotIn("a@example.com", logs.output[0])

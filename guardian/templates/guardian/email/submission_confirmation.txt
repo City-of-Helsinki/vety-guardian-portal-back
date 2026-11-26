@@ -1,0 +1,36 @@
+{% autoescape off %}(På svenska nedan / In English below)
+
+Hei,
+
+lapsesi ilmoittautuminen esiopetukseen on vastaanotettu.
+
+Saat tiedon esiopetuspaikasta myöhemmin.
+
+Tähän viestiin ei voi vastata.
+
+Helsingin kaupunki, Kasvatuksen ja koulutuksen toimiala
+
+----------------------------------------
+
+Hej,
+
+ditt barns anmälan till förskoleundervisning har tagits emot.
+
+Du får information om förskoleplatsen senare.
+
+Du kan inte svara på det här meddelandet.
+
+Helsingfors stad, Fostrans- och utbildningssektorn
+
+----------------------------------------
+
+Hello,
+
+your child's preschool enrolment has been received.
+
+You will be informed of the preschool place later.
+
+Please do not reply to this message.
+
+City of Helsinki, Education Division
+{% endautoescape %}

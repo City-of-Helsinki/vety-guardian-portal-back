@@ -164,11 +164,29 @@ STATIC_ROOT = env.str("STATIC_ROOT", default=str(BASE_DIR / "static"))
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+# Without EMAIL_HOST, emails are printed to the console.
+_email_host = env.str("EMAIL_HOST", default="")  # pyright: ignore
+if _email_host:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": _email_host,
+                "port": env.int("EMAIL_PORT", default=587),
+                "username": env.str("EMAIL_HOST_USER", default=""),  # pyright: ignore
+                "password": env.str("EMAIL_HOST_PASSWORD", default=""),  # pyright: ignore
+                "use_tls": env.bool("EMAIL_USE_TLS", default=True),
+                "timeout": env.int("EMAIL_TIMEOUT", default=10),
+            },
+        },
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@example.com")  # pyright: ignore
 
 
 # Django REST framework
