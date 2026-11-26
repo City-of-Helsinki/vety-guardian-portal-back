@@ -36,18 +36,6 @@ def applications_for_guardian(user: AbstractBaseUser | AnonymousUser) -> QuerySe
     return PreschoolApplication.objects.filter(dependant__guardians__ssn=ssn).distinct()
 
 
-class PreschoolApplicationCreateView(generics.CreateAPIView):
-    """
-    POST /preschool-application-form/
-
-    Create a new application in "draft" status.
-    """
-
-    permission_classes = [HasVerifiedIdentity]
-    queryset = PreschoolApplication.objects.all()
-    serializer_class = PreschoolApplicationSerializer
-
-
 class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
     """
     GET /preschool-application-form/<uuid:uuid>/

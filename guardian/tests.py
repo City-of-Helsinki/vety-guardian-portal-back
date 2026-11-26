@@ -58,16 +58,6 @@ class PreschoolApplicationApiTests(APITestCase):
     def detail_url(self, application_id: str) -> str:
         return reverse("preschool-application-detail", kwargs={"uuid": application_id})
 
-    def test_create_empty_draft(self):
-        response = self.client.post(reverse("preschool-application-create"), {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["status"], "draft")
-
-    def test_create_submitted_is_rejected(self):
-        response = self.client.post(reverse("preschool-application-create"), {"status": "submitted"}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.json()["status"][0]["code"], "new_application_not_draft")
-
     def test_put_draft_with_nulls(self):
         application_id = self.create_draft()
         body = {
