@@ -8,10 +8,8 @@ Helsinki-profiili (see authentication/views.py), never from the request.
 from __future__ import annotations
 
 import logging
-import uuid
 
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,13 +18,11 @@ from authentication.permissions import HasVerifiedIdentity
 from core.audit import Operation, Role, TargetType, audit
 
 from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJError, VTJResponseError
-from .models import Dependant, Guardian
+from .models import Guardian
 from .serializers import (
     DependantSerializer,
     DependantsResponseSerializer,
     ErrorResponseSerializer,
-    GuardianSerializer,
-    GuardiansResponseSerializer,
     IsProtectedFamilyResponseSerializer,
 )
 from .sync import sync_family
@@ -125,44 +121,3 @@ class DependantsView(APIView):
             target_ids=[dependant.pk for dependant in dependants],
         )
         return Response({"dependants": DependantSerializer(dependants, many=True).data})
-
-
-class GuardiansView(APIView):
-    """
-    GET /guardians/<dependant_id>/
-     - that dependant's own guardians
-
-    `dependant_id` is the  DATABASE id from a prior /dependants/ response's "id" field
-    """
-
-    permission_classes = [HasVerifiedIdentity]
-
-    @extend_schema(
-        methods=["GET"],
-        parameters=[
-            OpenApiParameter(
-                name="dependant_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                required=True,
-                description=("Database id (UUID) of the Dependant whose guardians to fetch."),
-            ),
-        ],
-        responses={
-            200: GuardiansResponseSerializer,
-            404: ErrorResponseSerializer,
-        },
-    )
-    def get(self, request: Request, dependant_id: uuid.UUID) -> Response:
-        # Only the logged-in guardian's own dependants; others look nonexistent.
-        try:
-            dependant = Dependant.objects.get(pk=dependant_id, guardians__ssn=_guardian_ssn(request))
-        except Dependant.DoesNotExist:
-            return Response({"error": "No such dependant"}, status=404)
-
-        return Response(
-            {
-                "dependant": DependantSerializer(dependant).data,
-                "guardians": GuardianSerializer(dependant.guardians.all(), many=True).data,
-            }
-        )

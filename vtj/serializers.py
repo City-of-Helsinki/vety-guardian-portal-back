@@ -6,9 +6,9 @@ from rest_framework import serializers
 from guardian.eligibility import NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI, check_eligibility
 from guardian.preschool_year import get_target_preschool_year
 
-from .models import Dependant, Guardian
+from .models import Dependant
 
-# Shared between both serializers below so Guardian/Dependant stay exposed identically
+# Person fields exposed by DependantSerializer
 PERSON_FIELDS = [
     "id",
     "ssn",
@@ -20,13 +20,6 @@ PERSON_FIELDS = [
     "postal_district",
     "address_protected",
 ]
-
-
-class GuardianSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Guardian
-        fields = PERSON_FIELDS
-        read_only_fields = PERSON_FIELDS  # these views are read-only - see views.py
 
 
 class EligibilitySerializer(serializers.Serializer):
@@ -58,13 +51,6 @@ class DependantsResponseSerializer(serializers.Serializer):
     """Schema-only: the `GET /dependants/` response envelope."""
 
     dependants = DependantSerializer(many=True)
-
-
-class GuardiansResponseSerializer(serializers.Serializer):
-    """Schema-only: the `GET /guardians/<dependant_id>/` response envelope."""
-
-    dependant = DependantSerializer()
-    guardians = GuardianSerializer(many=True)
 
 
 class IsProtectedFamilyResponseSerializer(serializers.Serializer):
