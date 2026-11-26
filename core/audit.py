@@ -66,6 +66,10 @@ class Message(StrEnum):
     APPLICATION_SAVED = "Application saved"
     APPLICATION_SUBMITTED = "Application submitted"
     APPLICATION_PDF_DOWNLOADED = "Application PDF downloaded"
+    # system
+    APPLICATION_SENT = "Application sent to vety-data-export-web"
+    GDPR_DATA_EXPORTED = "GDPR data exported"
+    GDPR_DATA_DELETED = "GDPR data deleted"
 
 
 class TargetType(StrEnum):

@@ -638,6 +638,44 @@ class SendApplicationsToVetyTests(TestCase):
             call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
         put.assert_not_called()
 
+    @mock.patch("guardian.vety.requests.put")
+    def test_sent_application_writes_entry(self, put):
+        put.return_value = self.response(201)
+        application = self.create_application()
+
+        call_command("send_applications_to_vety", stdout=StringIO())
+
+        entry = only_entry(self)
+        self.assertEqual(entry.message, "Application sent to vety-data-export-web")
+        context = entry.context
+        self.assertEqual(context["operation"], "READ")
+        self.assertEqual(context["actor"], {"role": "SYSTEM"})
+        self.assertEqual(context["target"], {"object_ids": [str(application.pk)]})
+        self.assertEqual(context["target_type"], "application")
+        self.assertEqual(context["recipient"], "vety-data-export-web")
+        serialized = json.dumps(context)
+        for ssn in (GUARDIAN_SSN, "010120A9998"):
+            self.assertNotIn(ssn, serialized)
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_failed_send_writes_no_entry(self, put):
+        put.return_value = self.response(400)
+        self.create_application()
+        with self.assertRaises(CommandError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        self.assertFalse(ResilientLogEntry.objects.exists())
+
+    @mock.patch("guardian.vety.requests.put")
+    def test_failed_audit_write_stops_the_run_and_leaves_application_unsent(self, put):
+        put.return_value = self.response(201)
+        application = self.create_application()
+        self.create_application()
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            call_command("send_applications_to_vety", stdout=StringIO(), stderr=StringIO())
+        put.assert_called_once()
+        application.refresh_from_db()
+        self.assertIsNone(application.vety_sent_at)
+
 
 class ConfirmationRecipientsTests(SimpleTestCase):
     def test_skips_blank_and_duplicate_addresses(self):

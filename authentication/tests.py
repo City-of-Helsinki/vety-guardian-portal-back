@@ -298,3 +298,45 @@ class GdprApiTests(APITestCase):
         self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
         self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def assert_only_system_entry(self, operation: str, message: str) -> None:
+        entry = only_entry(self)
+        self.assertEqual(entry.message, message)
+        context = entry.context
+        self.assertEqual(context["operation"], operation)
+        self.assertEqual(context["actor"], {"role": "SYSTEM"})
+        self.assertEqual(context["target"], {"object_ids": [str(self.user.uuid)]})
+        self.assertEqual(context["target_type"], "user")
+        self.assertNotIn(self.guardian_ssn, json.dumps(context))
+
+    def test_query_writes_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_200_OK)
+        self.assert_only_system_entry("READ", "GDPR data exported")
+
+    def test_delete_writes_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_204_NO_CONTENT)
+        self.assert_only_system_entry("DELETE", "GDPR data deleted")
+
+    def test_delete_dry_run_writes_no_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        self.client.delete(f"{self.url}?dry_run=true")
+        self.assertFalse(ResilientLogEntry.objects.exists())
+
+    def test_failed_audit_write_fails_query(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_QUERY_SCOPE))
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.get(self.url)
+
+    def test_failed_audit_write_keeps_user(self):
+        self.client.force_authenticate(self.user, token=gdpr_token(GDPR_DELETE_SCOPE))
+        with mock.patch(CREATE_ENTRY, side_effect=RuntimeError("database down")), self.assertRaises(RuntimeError):
+            self.client.delete(self.url)
+        self.assertTrue(CustomUser.objects.filter(pk=self.user.pk).exists())
+
+    def test_refused_requests_write_no_entry(self):
+        self.client.force_authenticate(self.user, token=gdpr_token())
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.delete(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(ResilientLogEntry.objects.exists())

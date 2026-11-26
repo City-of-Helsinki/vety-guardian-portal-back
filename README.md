@@ -301,6 +301,11 @@ Audited events:
 | `GET /preschool-application-form/<id>/` | READ | OWNER | application | "Application opened" |
 | `PUT /preschool-application-form/<id>/` | UPDATE | OWNER | application | "Application saved", "Application submitted" (draft → submitted) |
 | `GET /preschool-application-form/<id>/pdf/` | READ | OWNER | application | "Application PDF downloaded" |
+| `manage.py send_applications_to_vety` | READ (`recipient`: vety-data-export-web) | SYSTEM | application | "Application sent to vety-data-export-web" |
+| `GET /gdpr-api/v1/profiles/<uuid>` | READ | SYSTEM | user | "GDPR data exported" |
+| `DELETE /gdpr-api/v1/profiles/<uuid>` | DELETE (none for a dry run) | SYSTEM | user | "GDPR data deleted" |
+
+SYSTEM entries are written without the request, so they have no actor uuid, IP address or path.
 
 ## OpenAPI schema
 
