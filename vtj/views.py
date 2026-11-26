@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.permissions import HasVerifiedIdentity
-from core.audit import Operation, Role, TargetType, audit
+from core.audit import Message, Operation, Role, TargetType, audit
 
 from .exceptions import VTJAuthenticationError, VTJConnectionError, VTJError, VTJResponseError
 from .models import Guardian
@@ -115,7 +115,7 @@ class DependantsView(APIView):
         audit(
             request,
             Operation.READ,
-            "Dependants listed",
+            Message.DEPENDANTS_LISTED,
             role=Role.USER,
             target_type=TargetType.DEPENDANT,
             target_ids=[dependant.pk for dependant in dependants],

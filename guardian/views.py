@@ -17,6 +17,7 @@ from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from authentication.permissions import HasVerifiedIdentity
+from core.audit import Message, Operation, Role, TargetType, audit
 from vtj.models import Dependant, Guardian
 from vtj.serializers import ErrorResponseSerializer
 
@@ -57,8 +58,21 @@ class PreschoolApplicationDetailView(generics.RetrieveUpdateAPIView):
     def get_queryset(self):
         return applications_for_guardian(self.request.user)
 
+    def retrieve(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        application = self.get_object()
+        data = self.get_serializer(application).data
+        # Before returning the data, so that a failed audit write fails the request.
+        audit(request, Operation.READ, Message.APPLICATION_OPENED, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[application.pk])
+        return Response(data)
+
     def perform_update(self, serializer: BaseSerializer[Any]) -> None:
-        application = serializer.save()
+        was_submitted = serializer.instance.status == ApplicationStatus.SUBMITTED  # pyright: ignore[reportOptionalMemberAccess]
+        with transaction.atomic():
+            application = serializer.save()
+            submitted = not was_submitted and application.status == ApplicationStatus.SUBMITTED
+            message = Message.APPLICATION_SUBMITTED if submitted else Message.APPLICATION_SAVED
+            audit(self.request, Operation.UPDATE, message, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[application.pk])
+        # After the commit: no confirmation for a submission that was rolled back.
         if application.status == ApplicationStatus.SUBMITTED:
             send_submission_confirmation(application)
 
@@ -108,6 +122,8 @@ class PreschoolApplicationPdfView(generics.GenericAPIView):
             logger.error(f"Application PDF failed: {exc!s}")
             return Response({"error": "Translations unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+        # Before returning the PDF, so that a failed audit write fails the request.
+        audit(request, Operation.READ, Message.APPLICATION_PDF_DOWNLOADED, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[application.pk])
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = content_disposition_header(True, application_pdf_filename(application))
         return response
@@ -168,6 +184,7 @@ class PreschoolApplicationForDependantView(APIView):
             application = PreschoolApplication.objects.filter(dependant=dependant).order_by("-created_at").first()
             if application is not None:
                 # Returns the dependant's existing application (200)
+                audit(request, Operation.READ, Message.APPLICATION_OPENED, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[application.pk])
                 return Response(PreschoolApplicationSerializer(application, context={"request": request}).data, status=status.HTTP_200_OK)
 
             reasons = check_eligibility(dependant)
@@ -189,5 +206,6 @@ class PreschoolApplicationForDependantView(APIView):
                 h2_osoite=other_guardian.format_address() if other_guardian else "",
                 h2_henkilotunnus=other_guardian.ssn if other_guardian else "",
             )
+            audit(request, Operation.CREATE, Message.APPLICATION_CREATED, role=Role.OWNER, target_type=TargetType.APPLICATION, target_ids=[application.pk])
 
         return Response(PreschoolApplicationSerializer(application, context={"request": request}).data, status=status.HTTP_201_CREATED)

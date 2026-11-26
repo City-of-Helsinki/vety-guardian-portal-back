@@ -276,6 +276,32 @@ Both return the number of deleted rows, e.g. `{"applications": 1, "dependants": 
 
 Never enable `TEST_DATA_API_ENABLED` in production.
 
+## Audit logging
+
+Access to and changes of personal data are written as audit entries with `audit()` in `core/audit.py`
+(django-resilient-logger). Entries are stored in the database and Platta's CronJobs send them to Platta's audit
+Elastic, where they are kept for 5 years. See the `core/audit.py` docstring and `RESILIENT_LOGGER` in
+`core/settings.py`.
+
+Rules:
+
+- Writes: call `audit()` inside the same `transaction.atomic()` as the change, so a failed audit write rolls the
+  change back and fails the request.
+- Reads: call `audit()` before returning the data.
+- Only successful operations are logged. Refused or failed requests write no entry.
+- No personal data in entries: targets are record ids and the message is a fixed English text.
+
+Audited events:
+
+| Endpoint | Operation | Role | Target | Message |
+|---|---|---|---|---|
+| `POST /auth/identity/` | READ (UPDATE when the henkilötunnus or Helsinki-profiili id changes) | OWNER | user | "Identity verified" ("Identity updated") |
+| `GET /vtj/dependants/` | READ | USER | dependant | "Dependants listed" |
+| `POST /preschool-application-form/for-dependant/<id>/` | CREATE (201), READ (200, existing application) | OWNER | application | "Application created", "Application opened" |
+| `GET /preschool-application-form/<id>/` | READ | OWNER | application | "Application opened" |
+| `PUT /preschool-application-form/<id>/` | UPDATE | OWNER | application | "Application saved", "Application submitted" (draft → submitted) |
+| `GET /preschool-application-form/<id>/pdf/` | READ | OWNER | application | "Application PDF downloaded" |
+
 ## OpenAPI schema
 
 The APIs are documented using [drf-spectacular](https://drf-spectacular.readthedocs.io/en/latest). Which generates the OpenAPI schema from the Django Rest Framework views.
