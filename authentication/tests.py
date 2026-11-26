@@ -152,8 +152,10 @@ class TokenClockSkewTests(SimpleTestCase):
 
     @override_settings(OIDC_API_TOKEN_AUTH_LEEWAY=0)
     def test_without_leeway_rejects_token_issued_in_the_future(self):
+        # signed_token rounds the time down to a whole second, so iat_offset=1 can be only milliseconds ahead and
+        # already past when validated. A larger offset stays in the future even on a slow run.
         with self.assertRaises(jwt.ImmatureSignatureError):
-            HelusersJWT(signed_token(iat_offset=1)).validate(JWKS, TOKEN_AUDIENCE)
+            HelusersJWT(signed_token(iat_offset=30)).validate(JWKS, TOKEN_AUDIENCE)
 
     def test_reminder_to_recheck_leeway_wrapper_on_helusers_upgrade(self):
         # jwt_leeway.py patches helusers internals. After a helusers upgrade, check whether helusers now has
