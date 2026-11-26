@@ -296,6 +296,7 @@ Audited events:
 | Endpoint | Operation | Role | Target | Message |
 |---|---|---|---|---|
 | `POST /auth/identity/` | READ (UPDATE when the henkilötunnus or Helsinki-profiili id changes) | OWNER | user | "Identity verified" ("Identity updated") |
+| `GET /vtj/is_protected_family/` | UPDATE (rows fetched from VTJ and saved; no dependant entry without dependants) | USER | guardian, dependant | "Guardians saved from VTJ", "Dependants saved from VTJ" |
 | `GET /vtj/dependants/` | READ | USER | dependant | "Dependants listed" |
 | `POST /preschool-application-form/for-dependant/<id>/` | CREATE (201), READ (200, existing application) | OWNER | application | "Application created", "Application opened" |
 | `GET /preschool-application-form/<id>/` | READ | OWNER | application | "Application opened" |

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -25,7 +26,7 @@ from .serializers import (
     ErrorResponseSerializer,
     IsProtectedFamilyResponseSerializer,
 )
-from .sync import sync_family
+from .sync import fetch_family, save_family
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +83,31 @@ class IsProtectedFamilyView(APIView):
     )
     def get(self, request: Request) -> Response:
         try:
-            is_protected_family = sync_family(_guardian_ssn(request), end_user=_end_user(request))
+            family = fetch_family(_guardian_ssn(request), end_user=_end_user(request))
         except VTJError as exc:
             return _vtj_error_response(exc)
 
-        return Response({"is_protected_family": is_protected_family})
+        with transaction.atomic():
+            saved = save_family(family)
+            audit(
+                request,
+                Operation.UPDATE,
+                Message.GUARDIANS_SAVED_FROM_VTJ,
+                role=Role.USER,
+                target_type=TargetType.GUARDIAN,
+                target_ids=[guardian.pk for guardian in saved.guardians],
+            )
+            if saved.dependants:
+                audit(
+                    request,
+                    Operation.UPDATE,
+                    Message.DEPENDANTS_SAVED_FROM_VTJ,
+                    role=Role.USER,
+                    target_type=TargetType.DEPENDANT,
+                    target_ids=[dependant.pk for dependant in saved.dependants],
+                )
+
+        return Response({"is_protected_family": family.is_protected_family})
 
 
 class DependantsView(APIView):

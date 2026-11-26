@@ -60,6 +60,8 @@ class Message(StrEnum):
     IDENTITY_UPDATED = "Identity updated"
     # vtj
     DEPENDANTS_LISTED = "Dependants listed"
+    GUARDIANS_SAVED_FROM_VTJ = "Guardians saved from VTJ"
+    DEPENDANTS_SAVED_FROM_VTJ = "Dependants saved from VTJ"
     # guardian (applications)
     APPLICATION_CREATED = "Application created"
     APPLICATION_OPENED = "Application opened"

@@ -1,5 +1,7 @@
 """
-Persists VTJ family data into the Guardian/Dependant models
+Fetches a guardian's family from VTJ (fetch_family) and persists it into the Guardian/Dependant models (save_family).
+Split so that the VTJ HTTP calls run outside the database transaction that saves the rows and writes the audit
+entries (see vtj/views.py).
 
 `end_user` is required throughout because `client` itself
 requires it (Loppukayttaja is mandatory on the underlying VTJ call, for
@@ -9,13 +11,14 @@ the Gateway's own traceability) - it is not stored anywhere by this module.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 from django.db import transaction
 
 from . import client
 from .exceptions import VTJError
 from .models import Dependant, Guardian
-from .vtj_types import Henkilo, Huoltaja
+from .vtj_types import Henkilo, Huollettava, Huoltaja
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +40,34 @@ def _fetch_basic_info_safe(ssn: str, end_user: str) -> Henkilo:
         return Henkilo(ssn=ssn, last_name="", first_names="", address_protected=True, address=None)
 
 
-def sync_family(guardian_ssn: str, end_user: str) -> bool:
+@dataclass(frozen=True)
+class FamilyData:
+    """A guardian's family as fetched from VTJ, not yet saved."""
+
+    guardian_ssn: str
+    guardian_self: Henkilo
+    dependants: list[Huollettava]
+    # Every dependant's own guardians.
+    guardian_rows_by_dependant: dict[str, list[Huoltaja]]
+    # Every guardian identity seen across all of those dependants.
+    guardian_identity_by_ssn: dict[str, Huoltaja]
+    # Each family member's own record (address, Turvakielto).
+    henkilo_by_ssn: dict[str, Henkilo]
+    # True if any family member has an active Turvakielto (address-protection) flag.
+    is_protected_family: bool
+
+
+@dataclass(frozen=True)
+class SavedFamily:
+    """The rows save_family() created or updated."""
+
+    guardians: list[Guardian]
+    dependants: list[Dependant]
+
+
+def fetch_family(guardian_ssn: str, end_user: str) -> FamilyData:
     """
-    Fetches and persists `guardian_ssn`'s whole family, then returns
-    whether ANY family member has an active Turvakielto (address-
-    protection) flag.
-
-
-    :returns: True if any family member has an active Turvakielto flag.
+    Fetches `guardian_ssn`'s whole family from VTJ. No database access, so it can run outside a transaction.
     """
     guardian_self, dependants = client.get_dependants(guardian_ssn, end_user)
     dependant_ssns = [dependant.ssn for dependant in dependants if dependant.ssn]
@@ -69,38 +92,55 @@ def sync_family(guardian_ssn: str, end_user: str) -> bool:
     for co_guardian_ssn in co_guardian_ssns:
         henkilo_by_ssn[co_guardian_ssn] = _fetch_basic_info_safe(co_guardian_ssn, end_user)
 
-    is_protected_family = any(henkilo.address_protected for henkilo in henkilo_by_ssn.values())
+    return FamilyData(
+        guardian_ssn=guardian_ssn,
+        guardian_self=guardian_self,
+        dependants=dependants,
+        guardian_rows_by_dependant=guardian_rows_by_dependant,
+        guardian_identity_by_ssn=guardian_identity_by_ssn,
+        henkilo_by_ssn=henkilo_by_ssn,
+        is_protected_family=any(henkilo.address_protected for henkilo in henkilo_by_ssn.values()),
+    )
 
+
+def save_family(family: FamilyData) -> SavedFamily:
+    """
+    Creates or updates the family's Guardian and Dependant rows and links them. Call inside the caller's
+    transaction.atomic() together with the audit entries.
+    """
+    guardian_ssn = family.guardian_ssn
     with transaction.atomic():
-        guardians_by_ssn = {ssn: Guardian.update_or_create_from_identity(ssn, identity) for ssn, identity in guardian_identity_by_ssn.items()}
+        guardians_by_ssn = {ssn: Guardian.update_or_create_from_identity(ssn, identity) for ssn, identity in family.guardian_identity_by_ssn.items()}
 
         # The queried guardian is persisted even without dependants (no Huoltaja rows mention them then).
         queried_guardian = guardians_by_ssn.get(guardian_ssn) or Guardian.update_or_create_from_identity(guardian_ssn)
-        if guardian_ssn not in guardian_identity_by_ssn:
-            queried_guardian.last_name = guardian_self.last_name
-            queried_guardian.first_names = guardian_self.first_names
+        if guardian_ssn not in family.guardian_identity_by_ssn:
+            queried_guardian.last_name = family.guardian_self.last_name
+            queried_guardian.first_names = family.guardian_self.first_names
         guardians_by_ssn[guardian_ssn] = queried_guardian
 
-        dependants_by_ssn = {dependant.ssn: Dependant.update_or_create_from_identity(dependant.ssn, dependant) for dependant in dependants if dependant.ssn}
+        dependants_by_ssn = {
+            dependant.ssn: Dependant.update_or_create_from_identity(dependant.ssn, dependant) for dependant in family.dependants if dependant.ssn
+        }
 
         # Link dependant's own guardians for each dependant
-        for dependant_ssn, guardian_rows in guardian_rows_by_dependant.items():
+        for dependant_ssn, guardian_rows in family.guardian_rows_by_dependant.items():
             dependant = dependants_by_ssn[dependant_ssn]
             for guardian in guardian_rows:
                 guardian = guardians_by_ssn.get(guardian.ssn)
                 if guardian is not None:
                     dependant.guardians.add(guardian)
 
-        for ssn, henkilo in henkilo_by_ssn.items():
+        for ssn, henkilo in family.henkilo_by_ssn.items():
             person = guardians_by_ssn.get(ssn) or dependants_by_ssn.get(ssn)
             if person is None:
                 continue
             person.update_address(
                 henkilo.address,
                 address_protected=henkilo.address_protected,
-                withhold=is_protected_family,
+                withhold=family.is_protected_family,
                 home_municipality_code=henkilo.home_municipality_code,
             )
             person.save()
 
-    return is_protected_family
+    return SavedFamily(guardians=list(guardians_by_ssn.values()), dependants=list(dependants_by_ssn.values()))
