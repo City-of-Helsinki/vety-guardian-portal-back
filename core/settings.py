@@ -16,6 +16,7 @@ from pathlib import Path
 import environ
 import sentry_sdk
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -277,11 +278,28 @@ SPECTACULAR_SETTINGS = {
 # https://helsinkisolutionoffice.atlassian.net/wiki/spaces/platta/pages/7610695829/Suomi.fi-palveluv+yl+integrations
 
 VTJ_HEL_ENDPOINT = env("VTJ_HEL_ENDPOINT")  # test or cluster address depending on environment
-VTJ_HEL_SHARED_SECRET_HEADER = env("VTJ_HEL_SHARED_SECRET_HEADER", default=None)  # e.g. "X-Api-Key"  # type: ignore[reportArgumentType]
-VTJ_HEL_SHARED_SECRET = env("VTJ_HEL_SHARED_SECRET", default=None)  # type: ignore[reportArgumentType]
+# OAuth2 client credentials for the gateway (scope vtj-api.persons:read, see vtj/auth.py).
+# Leave VTJ_HEL_CLIENT_ID empty to call the endpoint without a token (in-app mock).
+VTJ_HEL_TOKEN_URL = env("VTJ_HEL_TOKEN_URL", default="https://auth.test.apigw.hel.fi/realms/api/protocol/openid-connect/token")  # type: ignore[reportArgumentType]
+VTJ_HEL_CLIENT_ID = env("VTJ_HEL_CLIENT_ID", default="")  # type: ignore[reportArgumentType]
+VTJ_HEL_CLIENT_SECRET = env("VTJ_HEL_CLIENT_SECRET", default="")  # type: ignore[reportArgumentType]
 VTJ_HEL_TIMEOUT = env.int("VTJ_HEL_TIMEOUT", default=10)
 # Serve the VTJ mock from this app at /vtj-mock/api/HenkilonTunnuskysely. Never enable in production.
 VTJ_MOCK_ENABLED = env.bool("VTJ_MOCK_ENABLED", default=False)  # pyright: ignore[reportUnknownVariableType]
+
+
+# Preschool (esiopetus) application eligibility, see guardian/eligibility.py and guardian/preschool_year.py.
+# The preschool year applications are made for. Leave empty to use next calendar year (Helsinki time).
+_esiopetus_target_year = env.str("ESIOPETUS_TARGET_YEAR", default="").strip()  # pyright: ignore
+ESIOPETUS_TARGET_YEAR: int | None = int(_esiopetus_target_year) if _esiopetus_target_year else None
+# The child's home municipality must match one of these. If ESIOPETUS_MUNICIPALITY_NAME is set, it is always used and
+# compared to the child's postal district (VTJ PostitoimipaikkaS). Otherwise ESIOPETUS_MUNICIPALITY_CODE is compared to
+# the VTJ Kotikunta/Kuntanumero. To switch to the code, set ESIOPETUS_MUNICIPALITY_NAME to an empty value and
+# ESIOPETUS_MUNICIPALITY_CODE=091 - see the comment in guardian/eligibility.py before doing so.
+ESIOPETUS_MUNICIPALITY_NAME = env.str("ESIOPETUS_MUNICIPALITY_NAME", default="Helsinki")  # pyright: ignore
+ESIOPETUS_MUNICIPALITY_CODE = env.str("ESIOPETUS_MUNICIPALITY_CODE", default="")  # pyright: ignore
+if not ESIOPETUS_MUNICIPALITY_NAME.strip() and not ESIOPETUS_MUNICIPALITY_CODE.strip():
+    raise ImproperlyConfigured("Set ESIOPETUS_MUNICIPALITY_NAME or ESIOPETUS_MUNICIPALITY_CODE.")
 
 
 # hki-vety, which receives the submitted applications (management command send_applications_to_vety).

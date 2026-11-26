@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+
+from guardian.eligibility import NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI, check_eligibility
+from guardian.preschool_year import get_target_preschool_year
 
 from .models import Dependant, Guardian
 
@@ -25,11 +29,29 @@ class GuardianSerializer(serializers.ModelSerializer):
         read_only_fields = PERSON_FIELDS  # these views are read-only - see views.py
 
 
+class EligibilitySerializer(serializers.Serializer):
+    """Schema-only: whether a preschool application can be made for the dependant (guardian/eligibility.py)."""
+
+    can_apply = serializers.BooleanField()
+    # Why not, when can_apply is false. "not_preschool_age" is always alone (checked first).
+    reasons = serializers.ListField(child=serializers.ChoiceField(choices=[NOT_PRESCHOOL_AGE, NOT_RESIDENT_HELSINKI]))
+    # The preschool year applications are made for now, e.g. 2027.
+    target_preschool_year = serializers.IntegerField()
+
+
 class DependantSerializer(serializers.ModelSerializer):
+    eligibility = serializers.SerializerMethodField()
+
     class Meta:
         model = Dependant
-        fields = PERSON_FIELDS
-        read_only_fields = PERSON_FIELDS
+        fields = [*PERSON_FIELDS, "eligibility"]
+        read_only_fields = fields
+
+    @extend_schema_field(EligibilitySerializer)
+    def get_eligibility(self, instance: Dependant) -> dict:
+        target_year = get_target_preschool_year()
+        reasons = check_eligibility(instance, target_year)
+        return {"can_apply": not reasons, "reasons": reasons, "target_preschool_year": target_year}
 
 
 class DependantsResponseSerializer(serializers.Serializer):
