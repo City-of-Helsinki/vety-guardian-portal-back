@@ -1,0 +1,78 @@
+name: Pytest with Coverage
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+permissions:
+  contents: read
+  # The coverage comment step posts to the pull request
+  pull-requests: write
+
+# Cancel the previous run when new commits are pushed to the same branch or pull request
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # The default timeout is 360 minutes; a stuck run would block a runner for hours
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          # Throwaway database that only this job can reach, so no password is needed
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: vetyguardiandb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # Later steps don't need git credentials
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.12.9"
+          enable-cache: true
+
+      - name: Set up Python
+        # Version comes from .python-version
+        run: uv python install
+
+      - name: Install the project
+        # No --no-build: djangorestframework-camel-case has only a source distribution on PyPI.
+        # uv.lock pins its sha256 hash, so only the exact file that was locked can be built.
+        run: uv sync --locked
+
+      - name: Run tests
+        # Settings without a default in core/settings.py. External services (VTJ, Helsinki-profiili,
+        # Locize, hki-vety API) are mocked in the tests, so their addresses only need to be valid.
+        env:
+          SECRET_KEY: "test"
+          DATABASE_URL: "postgres://postgres@localhost:5432/vetyguardiandb"
+          VTJ_HEL_ENDPOINT: "http://localhost:8080/api/HenkilonTunnuskysely"
+        # Coverage settings (source, branch, omit) are in [tool.coverage.run] in pyproject.toml
+        # The previous step installed everything, so don't sync or build again here
+        run: uv run --locked --no-sync --no-build pytest --cov --cov-report=xml --cov-report=term-missing
+
+      - name: Pytest coverage comment
+        # GITHUB_TOKEN is read-only on pull requests from forks, so the comment can't be posted there
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: MishaKav/pytest-coverage-comment@4cfb48edc8f875ac019afdcfd97c48d78ad2b723 # v1.13.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pytest-xml-coverage-path: ./coverage.xml
